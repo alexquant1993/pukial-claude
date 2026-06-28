@@ -1,0 +1,62 @@
+# Machine-readable TIER-1 rules for the /ship-check Stage 0.5 sweep.
+# Keep in sync with flutter-architecture-standard.md (same version).
+#
+# Format: valid YAML, but every value is written as strict JSON so the sweep can
+# load it with zero dependencies (PyYAML if present, else a tiny built-in reader).
+# Each rule: id, severity (critical|important|minor), message, pattern (Python `re`,
+# searched per line), include/exclude (repo-relative globs).
+# Exempt a line with an inline `// ship-check:ignore <id>` (same line or line above).
+#
+# Built-in reader (no PyYAML) constraint: comments are FULL-LINE only (start with '#');
+# never put an inline '# comment' after a value. A '#' *inside* a quoted pattern is fine.
+version: "2026-06-27"
+
+rules:
+  - id: "no-hardcoded-route-path"
+    severity: "critical"
+    message: "Hardcoded route path string in a navigation call. Use named routes: context.goNamed(AppRoute.x.name). (T1.1)"
+    pattern: "\\.(?:goNamed|pushNamed|pushReplacementNamed|replaceNamed|go|push|replace|pushReplacement)\\(\\s*['\"]/"
+    include: ["lib/**/*.dart"]
+    exclude: ["**/*.g.dart", "**/*.freezed.dart"]
+
+  - id: "no-inline-asset-literal"
+    severity: "important"
+    message: "Inline 'assets/...' literal. Add a static const to AppImages and reference it. (T1.2)"
+    pattern: "['\"]assets/"
+    include: ["lib/**/*.dart"]
+    exclude: ["**/app_images.dart", "**/*.g.dart", "**/*.freezed.dart"]
+
+  - id: "magic-number-edgeinsets"
+    severity: "important"
+    message: "Numeric literal in EdgeInsets. Use Sizes.pX (e.g. EdgeInsets.all(Sizes.p16)). (T1.3)"
+    pattern: "EdgeInsets\\.(?:all|symmetric|only|fromLTRB)\\([^)]*(?<![\\w.])-?\\d"
+    include: ["lib/**/*.dart"]
+    exclude: ["**/*.g.dart", "**/*.freezed.dart"]
+
+  - id: "magic-number-sizedbox"
+    severity: "important"
+    message: "Numeric literal in SizedBox width/height. Use a gap widget (gapW8) or Sizes.pX. (T1.3)"
+    pattern: "SizedBox\\([^)]*(?:width|height):\\s*(?<![\\w.])-?\\d"
+    include: ["lib/**/*.dart"]
+    exclude: ["**/*.g.dart", "**/*.freezed.dart"]
+
+  - id: "hardcoded-breakpoint"
+    severity: "minor"
+    message: "Hardcoded responsive width threshold. Use Breakpoint.tablet / Breakpoint.desktop. (T1.4)"
+    pattern: "\\.width\\s*[<>]=?\\s*-?\\d{3}"
+    include: ["lib/**/*.dart"]
+    exclude: ["**/*.g.dart", "**/*.freezed.dart"]
+
+  - id: "relative-import"
+    severity: "important"
+    message: "Relative import. Use an absolute package: import. (T1.5)"
+    pattern: "^\\s*import\\s+['\"]\\.\\.?/"
+    include: ["lib/**/*.dart", "test/**/*.dart"]
+    exclude: ["**/*.g.dart", "**/*.freezed.dart"]
+
+  - id: "raw-throw-exception"
+    severity: "important"
+    message: "Raw throw Exception(...) in feature code. Throw an AppException subtype with getMessage(loc). (T1.6)"
+    pattern: "throw\\s+Exception\\("
+    include: ["lib/src/features/**/*.dart"]
+    exclude: ["**/*.g.dart", "**/*.freezed.dart"]

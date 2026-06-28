@@ -1,0 +1,19 @@
+{
+  "name": "pukial-flutter",
+  "version": "0.1.0",
+  "description": "Pukial Flutter toolkit for Claude Code: the ship-check architecture gate (review -> triage -> fix -> recommend) and the new-app scaffolder for com.pukial Flutter apps. Pairs with the flutter-pukial-starter, which provides the per-repo Makefile, env, and settings the skills rely on.",
+  "author": {
+    "name": "Anderson Arroyo",
+    "email": "a.arroyo@pucp.pe"
+  },
+  "keywords": [
+    "flutter",
+    "pukial",
+    "architecture",
+    "code-review",
+    "ship-check",
+    "scaffolding"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
+}

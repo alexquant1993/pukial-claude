@@ -1,0 +1,21 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "pukial",
+  "description": "Internal Pukial Claude Code plugins for Flutter app development.",
+  "owner": {
+    "name": "Anderson Arroyo",
+    "email": "a.arroyo@pucp.pe"
+  },
+  "plugins": [
+    {
+      "name": "pukial-flutter",
+      "description": "ship-check architecture gate + new-app scaffolder for com.pukial Flutter apps.",
+      "version": "0.1.0",
+      "source": "./",
+      "author": {
+        "name": "Anderson Arroyo",
+        "email": "a.arroyo@pucp.pe"
+      }
+    }
+  ]
+}
