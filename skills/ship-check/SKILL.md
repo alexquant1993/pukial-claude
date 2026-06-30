@@ -12,7 +12,8 @@ description: >
 
 Post-development review pipeline. Verifies a finished change against the **Pukial Flutter
 Architecture Standard** ([`flutter-architecture-standard.md`](flutter-architecture-standard.md)),
-reports findings, and applies fixes only on opt-in. Design rationale lives in the starter specs
+reports findings, and applies fixes only on opt-in. Design rationale lives in the
+`flutter-pukial-starter` repo (starter-internal, not shipped with this plugin):
 `docs/superpowers/specs/2026-06-27-ship-check-review-pipeline-design.md` and its refinement
 `docs/superpowers/specs/2026-06-28-ship-check-pipeline-refinement-design.md`.
 

@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "pukial",
-  "description": "Internal Pukial Claude Code plugins for Flutter app development.",
+  "description": "Pukial Claude Code plugins for Flutter app development.",
   "owner": {
     "name": "Anderson Arroyo",
     "email": "a.arroyo@pucp.pe"

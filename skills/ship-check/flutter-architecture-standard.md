@@ -1,7 +1,7 @@
 ---
 title: Pukial Flutter Architecture Standard
 version: 2026-06-27
-source: waki audit (2026-06-27) + flutter-pukial-starter resolved conventions
+source: reference-app audit (2026-06-27) + flutter-pukial-starter resolved conventions
 ---
 
 # Pukial Flutter Architecture Standard

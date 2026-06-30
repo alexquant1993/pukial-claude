@@ -46,8 +46,8 @@ Ask the user for the following (ask all at once, not one at a time):
      is silently disabled by leaving `MIXPANEL_TOKEN` empty (token-gated no-op). There is no
      folder to delete.
    - **Notifications are not included** in this starter (no local or push stack). When an app
-     needs them, adapt waki's proven `awesome_notifications` + FCM implementation
-     (`../waki/lib/src/features/notifications/`) per-app — it is not a strip option.
+     needs them, adapt a proven `awesome_notifications` + FCM implementation from your own
+     reference app per-app, behind a service interface — it is not a strip option.
 
 6. **Keep the `example` reference feature?** — default **keep**.
    `lib/src/features/example/` is the canonical data/domain/application/presentation pattern.
@@ -291,8 +291,8 @@ Always report these at the end, regardless of what was stripped:
   `AuthRepository`, override `authRepositoryProvider` in `ProviderScope` overrides or by
   editing `lib/src/features/authentication/data/auth_repository.dart`).
 - Register your app in the RevenueCat dashboard and configure entitlements (if kept).
-- Notifications: not included in the starter. Adapt waki's `awesome_notifications` + FCM
-  setup (`../waki/lib/src/features/notifications/`) per-app, behind your own service interface.
+- Notifications: not included in the starter. Adapt a proven `awesome_notifications` + FCM
+  setup from your own reference app per-app, behind your own service interface.
 - Update `pubspec.yaml` `description` and `version` fields for your new app.
 - Update `l10n/` ARB files: add your app's specific strings; the starter ships English + Spanish
   starter strings only.

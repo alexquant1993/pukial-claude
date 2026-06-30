@@ -1,6 +1,6 @@
 # pukial-claude
 
-Internal **Claude Code plugin** distributing the Pukial Flutter toolkit so the whole team gets it in
+A **Claude Code plugin** distributing the Pukial Flutter toolkit so the whole team gets it in
 every project, with one-command updates instead of copy-paste drift.
 
 This repo is **both a marketplace and a single plugin** (`pukial-flutter`).
@@ -12,8 +12,10 @@ This repo is **both a marketplace and a single plugin** (`pukial-flutter`).
 | `ship-check` | Post-development architecture gate for Pukial Flutter apps: deterministic verification + TIER-1 grep sweep, parallel fresh-eyes review (architecture + bugs), author triage, opt-in fix loop, and a recommend-only simplifier pass. |
 | `new-app` | Scaffolds a new `com.pukial` Flutter app from the `flutter-pukial-starter` (rename, ids, keys). |
 
-Plus a `PostToolUse` hook (`dart-format`) that auto-fixes and formats `.dart` files with the
-FVM-pinned SDK. It no-ops on non-`.dart` files, so it is inert in non-Flutter repos.
+This plugin is **skills-only**. The `dart-format` PostToolUse hook is intentionally *not* bundled —
+it is FVM-pinned, repo-bound infrastructure, so it lives in the `flutter-pukial-starter` (and is
+inherited by any app scaffolded from it). Bundling it here would double-fire it on starter-derived
+apps.
 
 ## Install (teammates)
 
@@ -48,3 +50,7 @@ handles per-repo wiring.
 Bump `version` in `.claude-plugin/plugin.json` **and** the matching entry in
 `.claude-plugin/marketplace.json` together, then tag the commit. Teammates pick it up with
 `/plugin update`.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
