@@ -3,9 +3,14 @@
 #
 # Format: valid YAML, but every value is written as strict JSON so the sweep can
 # load it with zero dependencies (PyYAML if present, else a tiny built-in reader).
-# Each rule: id, severity (critical|important|minor), message, pattern (Python `re`,
-# searched per line), include/exclude (repo-relative globs).
-# Exempt a line with an inline `// ship-check:ignore <id>` (same line or line above).
+# Each rule: id, severity (critical|important|minor), message, pattern (Python `re`),
+# include/exclude (repo-relative globs).
+# Patterns are matched against the file's FULL text with re.MULTILINE, NOT per line —
+# `dart format` splits constructor calls, so a pattern must be able to span newlines
+# (`[^)]*` already does). `^`/`$` still mean line boundaries. A hit is reported on the
+# line holding the match's LAST character, so end each pattern on the offending token.
+# Exempt a line with an inline `// ship-check:ignore <id>` (same line or line above;
+# for a multi-line match, the line the match starts on works too).
 #
 # Built-in reader (no PyYAML) constraint: comments are FULL-LINE only (start with '#');
 # never put an inline '# comment' after a value. A '#' *inside* a quoted pattern is fine.
@@ -29,14 +34,14 @@ rules:
   - id: "magic-number-edgeinsets"
     severity: "important"
     message: "Numeric literal in EdgeInsets. Use Sizes.pX (e.g. EdgeInsets.all(Sizes.p16)). (T1.3)"
-    pattern: "EdgeInsets\\.(?:all|symmetric|only|fromLTRB)\\([^)]*(?<![\\w.])-?\\d"
+    pattern: "EdgeInsets\\.(?:all|symmetric|only|fromLTRB)\\([^()]*(?<![\\w.])-?\\d"
     include: ["lib/**/*.dart"]
     exclude: ["**/*.g.dart", "**/*.freezed.dart"]
 
   - id: "magic-number-sizedbox"
     severity: "important"
     message: "Numeric literal in SizedBox width/height. Use a gap widget (gapW8) or Sizes.pX. (T1.3)"
-    pattern: "SizedBox\\([^)]*(?:width|height):\\s*(?<![\\w.])-?\\d"
+    pattern: "SizedBox\\([^()]*(?:width|height):\\s*(?<![\\w.])-?\\d"
     include: ["lib/**/*.dart"]
     exclude: ["**/*.g.dart", "**/*.freezed.dart"]
 

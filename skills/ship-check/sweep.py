@@ -9,7 +9,14 @@ partitions every hit into:
                     so brand-new uncommitted violations and fix-loop edits both register.
   - "pre_existing": everywhere else -> the advisory "existing drift" baseline.
 
-Honors inline `// ship-check:ignore <rule-id>` (same line or the line above).
+Each rule's regex is matched against the file's FULL text (compiled with
+re.MULTILINE, so `^`/`$` still mean line boundaries) rather than line by line —
+`dart format` routinely splits the very constructor calls a pattern targets, and a
+per-line search can never see past the line holding the pattern head. A hit is
+attributed to the line holding the match's LAST character, i.e. the offending token.
+
+Honors inline `// ship-check:ignore <rule-id>` (same line or the line above; for a
+match spanning lines, the line the match starts on also counts).
 Zero runtime dependencies: uses PyYAML if importable, else a tiny built-in reader
 (the rules file is authored with strict-JSON values, a valid YAML subset).
 
@@ -17,6 +24,7 @@ Exit code: 0 if no in-diff Critical/Important findings, 1 otherwise. (Pre-existi
 drift and minor/in-diff-minor never set a failing code — the maturity guard.)
 """
 import argparse
+import bisect
 import functools
 import json
 import os
@@ -84,7 +92,10 @@ def load_rules(path):
                 "id": r["id"],
                 "severity": r.get("severity", "important"),
                 "message": r.get("message", ""),
-                "regex": re.compile(r["pattern"]),
+                # * MULTILINE is load-bearing: patterns are matched against whole-file
+                # * text, so a bare `^` (relative-import) would otherwise only ever
+                # * match at offset 0 and the rule would silently stop finding anything.
+                "regex": re.compile(r["pattern"], re.MULTILINE),
                 "include": r.get("include", ["lib/**/*.dart"]),
                 "exclude": r.get("exclude", []),
             }
@@ -198,18 +209,23 @@ def is_in_diff(ranges, relpath, lineno):
 _IGNORE = re.compile(r"ship-check:ignore\s+([a-z0-9-]+)")
 
 
-def suppressed(rule_id, lines, idx):
-    # idx is 0-based. A directive suppresses:
+def suppressed(rule_id, lines, idx, start_idx=None):
+    # idx is 0-based and points at the line the match ENDS on (the offending token).
+    # start_idx, when the match spans lines, points at the line it BEGINS on — that
+    # is where a developer naturally writes the directive (next to `EdgeInsets(`),
+    # so it is honored too. A directive suppresses:
     #   - the SAME line (trailing comment), always; or
     #   - the line ABOVE, but only if that line is comment-only (a standalone
     #     `// ship-check:ignore <id>` above the violation) — so a trailing-comment
     #     directive does not bleed onto the next line.
-    if rule_id in _IGNORE.findall(lines[idx]):
-        return True
-    if idx - 1 >= 0:
-        above = lines[idx - 1].strip()
-        if above.startswith("//") and rule_id in _IGNORE.findall(above):
+    candidates = [idx] if start_idx is None or start_idx == idx else [idx, start_idx]
+    for i in candidates:
+        if rule_id in _IGNORE.findall(lines[i]):
             return True
+        if i - 1 >= 0:
+            above = lines[i - 1].strip()
+            if above.startswith("//") and rule_id in _IGNORE.findall(above):
+                return True
     return False
 
 
@@ -230,6 +246,21 @@ def discover_files(root, globs):
     return sorted(seen)
 
 
+def line_starts(text):
+    # Offsets at which each line begins, for offset -> line-number lookup.
+    starts = [0]
+    for i, ch in enumerate(text):
+        if ch == "\n":
+            starts.append(i + 1)
+    return starts
+
+
+def line_of(starts, offset, last_idx):
+    # 0-based line holding `offset`. Clamped: a match ending on a trailing newline
+    # would otherwise index past the last line.
+    return min(bisect.bisect_right(starts, offset) - 1, last_idx)
+
+
 def scan(root, version, rules):
     findings, suppress_count = [], 0
     # Pre-discover candidate files per unique include set.
@@ -240,26 +271,42 @@ def scan(root, version, rules):
             if matches_any(relpath, rule["exclude"]):
                 continue
             try:
-                lines = (Path(root) / relpath).read_text(
+                blob = (Path(root) / relpath).read_text(
                     encoding="utf-8", errors="replace"
-                ).splitlines()
+                )
             except OSError:
                 continue
-            for idx, text in enumerate(lines):
-                if rule["regex"].search(text):
-                    if suppressed(rule["id"], lines, idx):
-                        suppress_count += 1
-                        continue
-                    findings.append(
-                        {
-                            "rule": rule["id"],
-                            "severity": rule["severity"],
-                            "message": rule["message"],
-                            "file": relpath,
-                            "line": idx + 1,
-                            "text": text.strip()[:160],
-                        }
-                    )
+            lines = blob.splitlines()
+            if not lines:
+                continue
+            starts, last = line_starts(blob), len(lines) - 1
+            # * finditer over the whole file (not per line) is what lets a pattern
+            # * span a `dart format` line break. Dedupe per line so several matches
+            # * on one line still report once, as the old per-line search did.
+            hit_lines = set()
+            for m in rule["regex"].finditer(blob):
+                # Attribute to the match's LAST character — every TIER-1 pattern
+                # ends on the offending token, and the in-diff/pre-existing split
+                # is by line number, so the opening line would misclassify a hit
+                # whose call only partly falls inside the diff.
+                end_idx = line_of(starts, max(m.end() - 1, m.start()), last)
+                if end_idx in hit_lines:
+                    continue
+                hit_lines.add(end_idx)
+                start_idx = line_of(starts, m.start(), last)
+                if suppressed(rule["id"], lines, end_idx, start_idx):
+                    suppress_count += 1
+                    continue
+                findings.append(
+                    {
+                        "rule": rule["id"],
+                        "severity": rule["severity"],
+                        "message": rule["message"],
+                        "file": relpath,
+                        "line": end_idx + 1,
+                        "text": lines[end_idx].strip()[:160],
+                    }
+                )
     return findings, suppress_count
 
 
