@@ -1,0 +1,61 @@
+# The content-lint rules skeleton: one table per check, every table annotated.
+# Copy it next to the deck's spec, fill it in, and run
+#
+#   python scripts/lint_deck.py --deck <deck.pptx | drafts dir> --rules lint.toml --expect-checks 8
+#
+# A table that is absent, or present with an empty list, makes its check
+# SKIPPED - never passed. `--expect-checks` is what closes that gap.
+# references/05-qa.md is the full account of every check.
+
+[typos]
+# Literal needles, matched against the slide's whitespace-flattened text, so
+# a needle split across a line break is still found. Substring match: do not
+# list "labor" unless you also mean "collaboration".
+needles = ["ASSESSEMENT", "recieve", "seperate"]
+
+[codes]
+# Regexes for internal tracking codes that must never reach the client.
+patterns = ['\bD[123]-\d{2}\b']
+
+[forbidden]
+# Literal tokens, matched case-insensitively. This file travels with the
+# deck, so it can carry vendor and codename tokens but not a client's own
+# name - references/05-qa.md, "what [forbidden] cannot carry".
+tokens = ["Some Vendor"]
+
+[required]
+# Boilerplate that must appear on every content slide. `exempt` lists the
+# file positions that legitimately lack it - the cover.
+strings = ["(C) RELAY - CONFIDENTIAL"]
+exempt = [1]
+
+[kickers]
+# Exactly one section kicker per content slide, and only from `allowed`.
+# `pattern` is matched against the NEWLINE-JOINED text: kickers are
+# paragraph-level and the pattern relies on the line boundary.
+#
+# The class names its accented capitals on purpose. `[A-Z]` is ASCII and
+# stops at the first one, which reports "no kicker" for a slide that carries
+# one and truncates the next into a kicker that does not exist. A deck in
+# another language extends this class, never the allowlist.
+pattern = '\b0[1-9]\. [A-ZÁÉÍÓÚÜÑ][A-ZÁÉÍÓÚÜÑ .&]{2,60}'
+allowed = ["01. THE SECTION"]
+exempt = [1]
+
+[notes_only]
+# Strings that must be in the speaker notes and on no slide. Leave this table
+# out, and lower --expect-checks to 7, for a deck built with --notes none:
+# every string would otherwise report "not in any note", correctly and
+# uselessly. Skipped with a reason when --deck is a drafts directory, which
+# carries no notes at all.
+strings = ["If asked"]
+
+[exact]
+# Verified figures. `strings` are literal; `spec` is a path, relative to THIS
+# rules file, to a spec whose "Exact string" column is read.
+spec = "spec.md"
+
+[assets]
+# The brand package whose non-text files must all be accounted for in its
+# assets.toml. Independent of the deck: it is the brand that is checked.
+brand = "relay"

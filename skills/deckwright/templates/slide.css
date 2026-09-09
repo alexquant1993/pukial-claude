@@ -1,0 +1,65 @@
+/* The slide draft skeleton.
+
+   Reaches the brand's tokens through a relative @import, then the
+   component vocabulary that is styled with them. Serve from the
+   repository root, never from the slide directory: see the note in
+   tokens.css and references/02-html-stage.md.
+
+   The @import points at brands/relay, the default design system - the one a
+   deck is drafted against when the user brings none. Change this line, or
+   copy this file into the brand, when drafting against another.
+
+   This file is the GENERIC skeleton and its header furniture is the kit's,
+   not any brand's: a tagline row, a kicker, a title, a sub and a two-mark
+   lockup top right. brands/relay does not draw that header - its own is a
+   3px rule, a mono kicker and the mark in the footer - so it ships its own
+   brands/relay/slide.css and every draft in this repository links that one.
+   The tokens below are still Relay's, because a skeleton has to resolve
+   against something and the default is what a new deck starts from. */
+
+@import url("../brands/relay/tokens.css");
+@import url("components.css");
+
+* { margin: 0; padding: 0; box-sizing: border-box }
+
+/* 1280x720 is the canvas the builder works on. Every coordinate authored
+   here transfers to the builder unchanged, because 1 CSS pixel is 9525 EMU
+   and 1280x720 maps 1:1 onto a 13.333 x 7.5 in slide. */
+html, body { width: 1280px; height: 720px; overflow: hidden }
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--bg);
+}
+.slide { position: relative; width: 1280px; height: 720px; overflow: hidden }
+
+/* The header furniture: style.header() writes these on every content slide
+   at exactly these coordinates. The content band the grid lives in runs
+   from --left to --right (48 to 1232). Scoped to direct children of .slide
+   so a component's own .title or .sub (a pill's sublabel) is not dragged to
+   the header. */
+.slide > .tagline { position: absolute; left: var(--left); top: 22px; width: 900px; height: 13px;
+           font-size: var(--t-tagline); font-weight: 600; letter-spacing: .04em;
+           text-transform: uppercase; line-height: var(--ls-label); color: var(--blue) }
+.slide > .kicker  { position: absolute; left: var(--left); top: 38px; width: 900px; height: 16px;
+           font-size: var(--t-eyebrow); font-weight: 700; text-transform: uppercase;
+           line-height: var(--ls-label); color: var(--navy) }
+.slide > .title   { position: absolute; left: var(--left); top: 62px; width: 1050px; height: 30px;
+           font-size: var(--t-title); font-weight: 700; line-height: var(--ls-title);
+           white-space: nowrap; color: var(--title) }
+.slide > .sub     { position: absolute; left: var(--left); top: 94px; width: var(--width); height: 18px;
+           font-size: var(--t-sub); line-height: var(--ls-body); color: var(--grey) }
+/* primitives.lockup(primary, secondary, right_x=R, y=32, LINE, 26, 21, gap=12):
+   two marks and a 22 px hairline, right edge on --right, centred on y=32. */
+.lockup  { position: absolute; right: calc(1280px - var(--right)); top: 19px; height: 26px;
+           display: flex; align-items: center; gap: 12px;
+           font-size: 13px; color: var(--blue) }
+.lockup .primary   { height: 26px; width: auto }
+.lockup .secondary { height: 21px; width: auto }
+.lockup .divider   { width: 1px; height: 22px; background: var(--line) }
+.foot    { position: absolute; left: var(--left); top: var(--page-y); width: 400px;
+           height: var(--page-h); font-size: var(--t-meta); line-height: var(--ls-label);
+           color: var(--grey) }
+.page    { position: absolute; left: var(--page-x); top: var(--page-y); width: var(--page-w);
+           height: var(--page-h); text-align: right; font-size: var(--t-meta);
+           line-height: var(--ls-label); color: var(--grey) }

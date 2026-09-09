@@ -1,0 +1,58 @@
+<!doctype html><html><head><meta charset="utf-8"><title>relay icon sheet</title><style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:#fff}
+  /* Cells are authored at 160px and the icons are placed at 16-20px in the
+     builder, a nine to twelve times oversample - the same construction as
+     templates/iconsheet.html, and for the same reason: authoring large is
+     more robust than relying on a device scale factor, and the cropper
+     derives cell size from the screenshot itself. */
+  #sheet{position:relative;width:960px;height:160px}
+  .cell{position:absolute;width:160px;height:160px;display:grid;place-items:center;background:#fff}
+  /* Relay's icons are Lucide at a 24px grid with a 2px stroke and round
+     caps (readme, "Iconography"). The stroke is 2 at 24, so it is 2 here
+     too - the viewBox does the scaling, not the stroke width. */
+  svg{width:160px;height:160px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+</style></head><body>
+<div id="sheet"></div>
+<script>
+// Lucide outline icons, ISC licence, copied from
+// brands/relay_design_system/assets/icons/ - Relay's own substitution, kept
+// rather than replaced. Paths only: the shipped SVGs carry a C2PA metadata
+// block that is several hundred times the size of the drawing.
+const ICONS = {
+  terminal: '<path d="M12 19h8"/><path d="m4 17 6-6-6-6"/>',
+  activity: '<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>',
+  users:    '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>',
+  zap:      '<path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z"/>',
+  arrowup:  '<path d="M7 7h10v10"/><path d="M7 17 17 7"/>',
+  arrowdown:'<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
+};
+// Order MUST match SHEETS["relay"] in scripts/crop_icons.py. This comment is
+// the only contract between the two files, and it is load-bearing: in the
+// one sheet of the source engagement where it was dropped, the names
+// drifted inline into the cropper.
+//
+// One colour key, `ink`. Relay's rule is that "icons never carry color of
+// their own: they are ink, inverse, or the semantic color of the message
+// they sit in", and every icon this brand's deck places sits on paper.
+const LIST = [
+  ['terminal','ink','#0A0A0A'],
+  ['activity','ink','#0A0A0A'],
+  ['users','ink','#0A0A0A'],
+  ['zap','ink','#0A0A0A'],
+  ['arrowup','ink','#0A0A0A'],
+  ['arrowdown','ink','#0A0A0A'],
+];
+const COLS = 6;
+const sheet = document.getElementById('sheet');
+LIST.forEach((it, i) => {
+  const [name, key, stroke] = it;
+  const cell = document.createElement('div');
+  cell.className = 'cell';
+  cell.style.left = (i % COLS) * 160 + 'px';
+  cell.style.top = Math.floor(i / COLS) * 160 + 'px';
+  cell.innerHTML = '<svg viewBox="0 0 24 24" style="stroke:' + stroke + '">' + ICONS[name] + '</svg>';
+  sheet.appendChild(cell);
+});
+</script>
+</body></html>

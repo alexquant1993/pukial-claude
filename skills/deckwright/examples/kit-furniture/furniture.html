@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kit furniture</title>
+<style>
+/* The HTML draft for build_furniture.py. 1280x720, coordinates transfer 1:1.
+
+   Two things the browser can do that PowerPoint cannot, and which is why
+   the builder does not simply screenshot this page:
+     - the conic gradient below is a CSS trick; DrawingML has no angular
+       gradient at all, so the builder pre-renders those five marks to PNG;
+     - the curve is an inline SVG path here, and the builder parses the same
+       d attribute into a native freeform shape rather than an image. */
+:root{
+  --blue:#2563EB; --navy:#0F172A; --title:#1E293B; --grey:#334155;
+  --line:#CBD5E1; --bg-top:#F8FAFC; --bg-bottom:#E6EDF6; --ring:#B8BDC4;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1280px;height:720px;overflow:hidden}
+body{font-family:"Noto Sans",Arial,sans-serif;
+     background:linear-gradient(180deg,var(--bg-top),var(--bg-bottom))}
+.slide{position:relative;width:1280px;height:720px}
+.tagline{position:absolute;left:48px;top:22px;font-size:10px;font-weight:600;
+         letter-spacing:.04em;text-transform:uppercase;color:var(--blue)}
+.kicker{position:absolute;left:48px;top:38px;font-size:14px;font-weight:700;
+        text-transform:uppercase;color:var(--navy)}
+.title{position:absolute;left:48px;top:62px;font-size:26px;font-weight:700;color:var(--title)}
+.sub{position:absolute;left:48px;top:94px;width:1184px;font-size:14px;color:var(--grey)}
+.lockup{position:absolute;right:48px;top:20px;font-size:13px;color:var(--blue)}
+.lab{position:absolute;font-size:10px;font-weight:700;letter-spacing:.04em;
+     text-transform:uppercase;color:var(--blue)}
+
+.balls{position:absolute;left:48px;top:172px;display:flex;gap:38px}
+.ball{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--ring);background:#fff}
+.ball.q25{background:conic-gradient(var(--blue) 0 25%,#fff 25% 100%)}
+.ball.q50{background:conic-gradient(var(--blue) 0 50%,#fff 50% 100%)}
+.ball.q75{background:conic-gradient(var(--blue) 0 75%,#fff 75% 100%)}
+.ball.q100{background:var(--blue)}
+.bcap{position:absolute;top:194px;font-size:11px;color:var(--grey)}
+
+.rail{position:absolute;left:48px;top:262px;width:1184px;height:18px;border-radius:9px;
+      background:linear-gradient(90deg,rgba(37,99,235,.10),rgba(37,99,235,.30) 60%,rgba(37,99,235,.55));
+      display:flex;align-items:center;justify-content:center;
+      font-size:10px;font-weight:700;color:var(--title)}
+
+.box{position:absolute;width:170px;height:52px;background:#fff;border:1.2px solid var(--blue);
+     border-radius:8px;display:flex;align-items:center;justify-content:center;
+     font-size:13px;font-weight:700;color:var(--navy)}
+svg.flow{position:absolute;left:226px;top:346px;width:280px;height:120px;overflow:visible}
+svg.flow path{fill:none;stroke:var(--blue);stroke-width:1.5}
+
+.footrule{position:absolute;left:48px;top:622px;width:1184px;height:1px;background:var(--line)}
+.foottext{position:absolute;left:48px;top:628px;font-size:11px;color:var(--grey)}
+.footpage{position:absolute;right:48px;top:628px;font-size:11px;color:var(--grey)}
+.brandfoot{position:absolute;left:48px;top:690px;font-size:11px;color:var(--grey)}
+.brandpage{position:absolute;right:48px;top:690px;font-size:11px;color:var(--grey)}
+</style>
+</head>
+<body>
+<main class="slide">
+  <div class="tagline">A placeholder tagline for the example brand</div>
+  <div class="kicker">02. Kit</div>
+  <h1 class="title">Kit furniture</h1>
+  <p class="sub">Every primitive the capability matrix does not reach.</p>
+  <div class="lockup">ALPHA | BETA</div>
+
+  <div class="lab" style="left:48px;top:150px">Conic fill, pre-rendered</div>
+  <div class="balls">
+    <span class="ball"></span><span class="ball q25"></span><span class="ball q50"></span>
+    <span class="ball q75"></span><span class="ball q100"></span>
+  </div>
+  <div class="bcap" style="left:48px">0%</div>
+  <div class="bcap" style="left:104px">25%</div>
+  <div class="bcap" style="left:160px">50%</div>
+  <div class="bcap" style="left:216px">75%</div>
+  <div class="bcap" style="left:272px">100%</div>
+
+  <div class="lab" style="left:48px;top:240px">Native linear gradient</div>
+  <div class="rail">a:gradFill written on the shape</div>
+
+  <div class="lab" style="left:48px;top:320px">Freeform curve and arrowhead</div>
+  <div class="box" style="left:48px;top:400px">Source</div>
+  <svg class="flow" viewBox="0 0 280 120">
+    <path d="M0 80 C60 80 60 40 120 40 S180 10 240 10"/>
+    <path d="M236 4 L246 10 L236 16 Z" fill="#2563EB" stroke="none"/>
+  </svg>
+  <div class="box" style="left:480px;top:330px">Target</div>
+
+  <div class="lab" style="left:48px;top:600px">Footer primitive</div>
+  <div class="footrule"></div>
+  <div class="foottext">Kit furniture example</div>
+  <div class="footpage">2</div>
+
+  <div class="brandfoot">(c) Example Organisation</div>
+  <div class="brandpage">2</div>
+</main>
+</body>
+</html>

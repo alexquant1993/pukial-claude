@@ -1,0 +1,114 @@
+<!doctype html>
+<!-- S09 What has to be true by when. The deck's only slide drawn with the
+     kit's own components rather than with the builder's Draw class:
+     matrix_frame, flow_pills and the status pills used to have exactly one
+     caller in the repository, examples/capability-matrix, and folding that
+     coverage into a slide this argument actually needs is why this file
+     exists. The ledger has the ruling.
+
+     Geometry. The matrix is components.matrix_frame at top=182 (Relay's
+     CONTENT_TOP) with row_h=86, hdr_h=32 and rgap=8, so its last row ends at
+     182 + 64 + 4*86 = 590. Columns are geometry.columns(80, 1200, 176, 16, 3):
+     a 176px row-label gutter, then three 298.67px columns 16 apart, the last
+     one ending exactly on the right edge.
+
+     One bottom row under it, at 604: the enablers strip from the first
+     column's left edge, and the legend right-aligned to 1200. They share a
+     row because two rows would not clear CONTENT_BOTTOM (650) at any row
+     height that fits a cell with two sublabelled pills.
+
+     The pills are square (RAD_CONTROL, 2) and the cells are sharp
+     (RAD_SURFACE, 0): the builder passes the brand's radii to the kit rather
+     than taking the kit's 7 and 8, which Relay's radius token forbids.
+
+     The one orange element is the "Enablers" label. The frame is ink and the
+     amber and red pills are Relay's semantic STATUS colours, which its readme
+     keeps apart from signal.
+
+     DISPOSABLE. build_ai_horizon.py is the source of truth. -->
+<html lang="en"><head><meta charset="utf-8"><title>S09 What has to be true</title>
+<link rel="stylesheet" href="../../../brands/relay/slide.css">
+</head><body>
+<div class="slide">
+
+  <div class="rule-open"></div>
+  <div class="kicker" style="color:var(--muted)">08. What has to be true</div>
+  <div class="title">What has to be true by when</div>
+  <div class="sub">Every horizon rests on capabilities that are not in place yet.</div>
+
+  <div class="matrix" style="top:182px;--cols:3;--row-h:86px">
+    <div></div>
+    <div class="head head--ink"><div class="col-head ink-navy">2026 to 2030</div><div class="col-sub">THE NEXT YEARS. HIGH</div></div>
+    <div class="head head--ink"><div class="col-head ink-navy">The 2030s</div><div class="col-sub">THE NEXT DECADE. MEDIUM</div></div>
+    <div class="head head--ink"><div class="col-head ink-navy">The 2040s</div><div class="col-sub">TOWARD 2050. LOW</div></div>
+
+    <div class="row-label ink-navy"><img src="../../../brands/relay/icons/ic_zap_ink.png" alt="">Data &amp;<br>compute</div>
+    <div class="cell cell--square">
+      <span class="pill pill--quiet pill--square">Frontier compute at scale</span>
+      <span class="pill pill--amber pill--square">Clean enterprise data<span class="sub">today: mostly in lakes</span></span>
+    </div>
+    <div class="cell cell--square">
+      <span class="pill pill--amber pill--square">Compute priced like power<span class="sub">today: scarce and lumpy</span></span>
+    </div>
+    <div class="cell cell--square cell--empty">-</div>
+
+    <div class="row-label ink-navy"><img src="../../../brands/relay/icons/ic_terminal_ink.png" alt="">Models &amp;<br>agents</div>
+    <div class="cell cell--square">
+      <span class="pill pill--quiet pill--square">Tool use in every workflow</span>
+      <span class="pill pill--amber pill--square">Agents reliable for a day<span class="sub">today: minutes at a time</span></span>
+    </div>
+    <div class="cell cell--square">
+      <span class="pill pill--red pill--square">Agents reliable for a week</span>
+      <span class="pill pill--amber pill--square">Automated experiment loops<span class="sub">today: single steps</span></span>
+    </div>
+    <div class="cell cell--square">
+      <span class="pill pill--red pill--square">Robots cheap enough to rent</span>
+    </div>
+
+    <div class="row-label ink-navy"><img src="../../../brands/relay/icons/ic_users_ink.png" alt="">Institutions<br>&amp; law</div>
+    <div class="cell cell--square">
+      <span class="pill pill--amber pill--square">Audit trails on decisions<span class="sub">today: pilots only</span></span>
+      <span class="pill pill--red pill--square">Liability rules for agents</span>
+    </div>
+    <div class="cell cell--square">
+      <span class="pill pill--red pill--square">Rules agreed across borders</span>
+    </div>
+    <div class="cell cell--square">
+      <span class="pill pill--red pill--square">Income decoupled from work</span>
+    </div>
+
+    <div class="row-label ink-navy"><img src="../../../brands/relay/icons/ic_activity_ink.png" alt="">Skills &amp;<br>people</div>
+    <div class="cell cell--square">
+      <span class="pill pill--amber pill--square">Supervision as a taught skill<span class="sub">today: taught nowhere</span></span>
+      <span class="pill pill--amber pill--square">Public trust in agents<span class="sub">today: falling</span></span>
+    </div>
+    <div class="cell cell--square">
+      <span class="pill pill--red pill--square">Retraining at national scale</span>
+    </div>
+    <div class="cell cell--square">
+      <span class="pill pill--red pill--square">Care and craft paid properly</span>
+    </div>
+  </div>
+
+  <!-- the enablers strip: the label right-aligned in the row-label gutter,
+       the pills from the first column's left edge, 8 apart. The one orange
+       element on this slide. -->
+  <div class="k k--label" style="left:80px;top:610px;width:170px;text-align:right;color:var(--signal-600)">Enablers</div>
+  <div class="flow flow--left" style="left:272px;top:604px;width:600px;height:26px;gap:8px;padding:0">
+    <span class="pill pill--quiet pill--square">Energy</span>
+    <span class="pill pill--quiet pill--square">Chips and fabs</span>
+    <span class="pill pill--quiet pill--square">Public trust</span>
+  </div>
+
+  <!-- the legend, right-aligned to the content band, on the same row -->
+  <div class="legend" style="top:608px;border-radius:var(--rad-control)">
+    <span><span class="ink-red">RED</span> absent today &nbsp;&nbsp;&nbsp; <span class="ink-amb-leg">AMBER</span> partial today</span>
+  </div>
+
+  <div class="foot">
+    <img class="wm" src="../../../brands/relay/logo_primary.png" alt="Relay">
+    <span class="meta">(C) RELAY - CONFIDENTIAL</span>
+  </div>
+  <div class="page">9</div>
+</div>
+</body></html>

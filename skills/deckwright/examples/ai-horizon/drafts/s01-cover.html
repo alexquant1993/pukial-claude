@@ -1,0 +1,33 @@
+<!doctype html>
+<!-- S01 Cover. Relay slide type 01, Title: black ground, mono kicker at the
+     top, the display line anchored low, the sub under it, wordmark in the
+     footer. The spec's S01 says no kicker of its own, no copyright line and
+     no page number, so the mono line at the top is the brand tagline - the
+     same furniture the kit's generic header writes on every slide - and the
+     footer is the mark alone.
+
+     The hero is TWO explicit lines, not one wrapped box. Greedy wrap cannot
+     break this title after the comma at any size: "2026 to 2050 and beyond"
+     is wider than "AI and humanity, 2026", so any width that fits the second
+     line also fits "2026" onto the first. The builder writes line one with
+     settext and line two with add_para.
+
+     DISPOSABLE. Once the layout is approved, the builder
+     examples/ai-horizon/build_ai_horizon.py
+     is the source of truth and this file stops being maintained. -->
+<html lang="en"><head><meta charset="utf-8"><title>S01 Cover</title>
+<link rel="stylesheet" href="../../../brands/relay/slide.css">
+</head><body>
+<div class="slide dark">
+
+  <div class="k" style="left:80px;top:72px">Technology that moves the business.</div>
+
+  <div class="disp disp--cover disp--paper" style="left:80px;top:356px;width:1100px;height:150px">AI and humanity,<br>2026 to 2050 and beyond</div>
+
+  <div class="disp disp--sub disp--paper" style="left:80px;top:538px;width:820px;height:30px;font-weight:400;color:var(--ink-300)">Forecasts by horizon, with the confidence each one deserves</div>
+
+  <div class="k k--faint k--wrap" style="left:80px;top:580px;width:820px">An opinion deck. Every forecast is graded; none is a measurement.</div>
+
+  <div class="foot"><img class="wm" src="../../../brands/relay/logo_inverse.png" alt="Relay"></div>
+</div>
+</body></html>

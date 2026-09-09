@@ -1,0 +1,126 @@
+<!doctype html>
+<!-- S03 The horizon map. Relay slide type 09, Timeline: steps in equal
+     columns under a 3px black rule. Two registers stacked, because seven
+     milestones will not alternate above and below a rail without a
+     connector crossing a year label - at 2040 and 2045 a milestone sits on
+     a tick exactly, so its connector would run straight through that year:
+
+       upper  the four horizon segments and the year rail, drawn to scale.
+              x(year) = 110 + (year - 2026) * 37.9167, so 2026 sits at 110,
+              2050 at 1020 and "beyond" at 1170. The seven milestone
+              markers sit ON the rail at their true year, numbered above it.
+       lower  the same seven milestones as seven equal columns under the
+              heavy rule, in reading order, carrying the copy.
+
+     The rail keeps the proportion; the columns keep the words. The one
+     orange element is milestone 1 - the nearest one, the step we are
+     living in, which is how the kit's own 09-timeline marks Q4 2026.
+
+     DISPOSABLE. build_ai_horizon.py is the source of truth. -->
+<html lang="en"><head><meta charset="utf-8"><title>S03 The horizon map</title>
+<link rel="stylesheet" href="../../../brands/relay/slide.css">
+</head><body>
+<div class="slide">
+
+  <div class="rule-open"></div>
+  <div class="kicker" style="color:var(--muted)">02. The horizon map</div>
+  <div class="title">Seven milestones on one rail</div>
+  <div class="sub">Where each forecast lands, and how sure this deck is about it.</div>
+
+  <!-- four horizon segments, widths proportional to their year span -->
+  <div class="r-rule r-rule--strong" style="left:90px;top:190px;width:1100px"></div>
+  <div class="r-rule" style="left:261.7px;top:190px;width:1px;height:48px"></div>
+  <div class="r-rule" style="left:640.8px;top:190px;width:1px;height:48px"></div>
+  <div class="r-rule" style="left:1020px;top:190px;width:1px;height:48px"></div>
+  <div class="k k--ink" style="left:98px;top:200px">The next years</div>
+  <div class="k k--faint" style="left:98px;top:216px">High</div>
+  <div class="k k--ink" style="left:269.7px;top:200px">The next decade</div>
+  <div class="k k--faint" style="left:269.7px;top:216px">Medium</div>
+  <div class="k k--ink" style="left:648.8px;top:200px">Toward 2050</div>
+  <div class="k k--faint" style="left:648.8px;top:216px">Low</div>
+  <div class="k k--ink" style="left:1028px;top:200px">Beyond</div>
+  <div class="k k--faint" style="left:1028px;top:216px">Speculative</div>
+
+  <!-- milestone numbers, then the rail, then its markers, ticks and years -->
+  <div class="k" style="left:137.9px;top:272px;width:20px;text-align:center;color:var(--signal-600)">1</div>
+  <div class="k k--faint" style="left:213.8px;top:272px;width:20px;text-align:center">2</div>
+  <div class="k k--faint" style="left:327.5px;top:272px;width:20px;text-align:center">3</div>
+  <div class="k k--faint" style="left:479.2px;top:272px;width:20px;text-align:center">4</div>
+  <div class="k k--faint" style="left:630.8px;top:272px;width:20px;text-align:center">5</div>
+  <div class="k k--faint" style="left:820.4px;top:272px;width:20px;text-align:center">6</div>
+  <div class="k k--faint" style="left:1010px;top:272px;width:20px;text-align:center">7</div>
+
+  <div class="r-rule r-rule--strong" style="left:90px;top:292px;width:1100px"></div>
+
+  <div class="r-rule" style="left:143.9px;top:288px;width:8px;height:8px;background:var(--signal-500)"></div>
+  <div class="r-rule" style="left:219.8px;top:288px;width:8px;height:8px;background:var(--ink-1000)"></div>
+  <div class="r-rule" style="left:333.5px;top:288px;width:8px;height:8px;background:var(--ink-1000)"></div>
+  <div class="r-rule" style="left:485.2px;top:288px;width:8px;height:8px;background:var(--ink-1000)"></div>
+  <div class="r-rule" style="left:636.8px;top:288px;width:8px;height:8px;background:var(--ink-1000)"></div>
+  <div class="r-rule" style="left:826.4px;top:288px;width:8px;height:8px;background:var(--ink-1000)"></div>
+  <div class="r-rule" style="left:1016px;top:288px;width:8px;height:8px;background:var(--ink-1000)"></div>
+
+  <div class="r-rule" style="left:109.2px;top:296px;width:1.5px;height:9px;background:var(--ink-400)"></div>
+  <div class="r-rule" style="left:260.9px;top:296px;width:1.5px;height:9px;background:var(--ink-400)"></div>
+  <div class="r-rule" style="left:450.5px;top:296px;width:1.5px;height:9px;background:var(--ink-400)"></div>
+  <div class="r-rule" style="left:640.1px;top:296px;width:1.5px;height:9px;background:var(--ink-400)"></div>
+  <div class="r-rule" style="left:829.7px;top:296px;width:1.5px;height:9px;background:var(--ink-400)"></div>
+  <div class="r-rule" style="left:1019.2px;top:296px;width:1.5px;height:9px;background:var(--ink-400)"></div>
+  <div class="r-rule" style="left:1169.2px;top:296px;width:1.5px;height:9px;background:var(--ink-400)"></div>
+
+  <div class="k k--faint" style="left:80px;top:310px;width:60px;text-align:center">2026</div>
+  <div class="k k--faint" style="left:231.7px;top:310px;width:60px;text-align:center">2030</div>
+  <div class="k k--faint" style="left:421.2px;top:310px;width:60px;text-align:center">2035</div>
+  <div class="k k--faint" style="left:610.8px;top:310px;width:60px;text-align:center">2040</div>
+  <div class="k k--faint" style="left:800.4px;top:310px;width:60px;text-align:center">2045</div>
+  <div class="k k--faint" style="left:990px;top:310px;width:60px;text-align:center">2050</div>
+  <div class="k k--faint" style="left:1140px;top:310px;width:60px;text-align:center">beyond</div>
+
+  <!-- the seven milestones as seven columns under the heavy rule -->
+  <div class="r-rule r-rule--heavy" style="left:80px;top:372px;width:1120px"></div>
+
+  <div class="step" style="left:80px;top:388px;width:149.7px">
+    <div class="yr" style="color:var(--signal-600)">01 &middot; 2027</div>
+    <div class="lab" style="font-size:var(--t-body);height:64px">Agents handle most routine office tasks</div>
+    <div class="k k--faint" style="position:relative;margin-top:12px">High</div>
+  </div>
+  <div class="step" style="left:241.7px;top:388px;width:149.7px">
+    <div class="yr">02 &middot; 2029</div>
+    <div class="lab" style="font-size:var(--t-body);height:64px">AI-designed drugs in late-stage trials</div>
+    <div class="k k--faint" style="position:relative;margin-top:12px">High</div>
+  </div>
+  <div class="step" style="left:403.4px;top:388px;width:149.7px">
+    <div class="yr">03 &middot; 2032</div>
+    <div class="lab" style="font-size:var(--t-body);height:64px">A tutor for every connected child</div>
+    <div class="k k--faint" style="position:relative;margin-top:12px">Medium</div>
+  </div>
+  <div class="step" style="left:565.1px;top:388px;width:149.7px">
+    <div class="yr">04 &middot; 2036</div>
+    <div class="lab" style="font-size:var(--t-body);height:64px">Automated labs run the whole loop</div>
+    <div class="k k--faint" style="position:relative;margin-top:12px">Medium</div>
+  </div>
+  <div class="step" style="left:726.9px;top:388px;width:149.7px">
+    <div class="yr">05 &middot; 2040</div>
+    <div class="lab" style="font-size:var(--t-body);height:64px">Self-driving is the default in cities</div>
+    <div class="k k--faint" style="position:relative;margin-top:12px">Low</div>
+  </div>
+  <div class="step" style="left:888.6px;top:388px;width:149.7px">
+    <div class="yr">06 &middot; 2045</div>
+    <div class="lab" style="font-size:var(--t-body);height:64px">Ageing treated as a condition</div>
+    <div class="k k--faint" style="position:relative;margin-top:12px">Low</div>
+  </div>
+  <div class="step" style="left:1050.3px;top:388px;width:149.7px">
+    <div class="yr">07 &middot; 2050</div>
+    <div class="lab" style="font-size:var(--t-body);height:64px">Work optional in wealthy societies</div>
+    <div class="k k--faint" style="position:relative;margin-top:12px">Speculative</div>
+  </div>
+
+  <div class="noteline" style="top:566px;height:36px">Reading rule: the further right, the wider the error bars.</div>
+
+  <div class="foot">
+    <img class="wm" src="../../../brands/relay/logo_primary.png" alt="Relay">
+    <span class="meta">(C) RELAY - CONFIDENTIAL</span>
+  </div>
+  <div class="page">3</div>
+</div>
+</body></html>

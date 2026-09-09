@@ -1,0 +1,80 @@
+<!doctype html>
+<!-- S08 Impact by domain and horizon. Relay slide type 11, Table: mono
+     uppercase headers over a 1.5px rule, hairline-bottomed rows, no zebra
+     striping and no card wrappers. That is a better fit for a 4x4 matrix
+     than the example brand's rounded cells, and it is Relay's own idiom for
+     tabular data - "laid out as CSS grid rows with hairline bottoms".
+
+     Columns are geometry.columns(80, 1200, 176, 16, 4): a 176px row-label
+     gutter, then four 220px columns 16 apart. The one orange element is the
+     nearest horizon's column header.
+
+     DISPOSABLE. build_ai_horizon.py is the source of truth. -->
+<html lang="en"><head><meta charset="utf-8"><title>S08 Impact by domain</title>
+<link rel="stylesheet" href="../../../brands/relay/slide.css">
+</head><body>
+<div class="slide">
+
+  <div class="rule-open"></div>
+  <div class="kicker" style="color:var(--muted)">07. Impact by domain</div>
+  <div class="title">Four domains across four horizons</div>
+  <div class="sub">The same forecasts, placed by domain, each carrying its grade.</div>
+
+  <div class="tbl" style="top:196px">
+    <div class="tbl-head" style="grid-template-columns:176px 220px 220px 220px 220px;column-gap:16px">
+      <span>Domain</span>
+      <span style="color:var(--signal-600)">2026 to 2030</span>
+      <span>The 2030s</span>
+      <span>The 2040s</span>
+      <span>After 2050</span>
+    </div>
+
+    <div class="tbl-row" style="grid-template-columns:176px 220px 220px 220px 220px;column-gap:16px;height:82px">
+      <span class="rowlab"><img src="../../../brands/relay/icons/ic_terminal_ink.png" alt="">Work</span>
+      <span class="val lead">Agents do routine desk work<span class="k k--faint" style="position:relative;display:block;margin-top:6px;font-weight:400">High</span></span>
+      <span class="val">Functions run on agents<span class="k k--faint" style="position:relative;display:block;margin-top:6px">Medium</span></span>
+      <span class="val">Robots do physical labour<span class="k k--faint" style="position:relative;display:block;margin-top:6px">Low</span></span>
+      <span class="val">Work becomes optional<span class="k k--faint" style="position:relative;display:block;margin-top:6px">Speculative</span></span>
+    </div>
+
+    <div class="tbl-row" style="grid-template-columns:176px 220px 220px 220px 220px;column-gap:16px;height:82px">
+      <span class="rowlab"><img src="../../../brands/relay/icons/ic_activity_ink.png" alt="">Science and health</span>
+      <span class="val lead">AI reads every scan<span class="k k--faint" style="position:relative;display:block;margin-top:6px;font-weight:400">High</span></span>
+      <span class="val">Automated labs<span class="k k--faint" style="position:relative;display:block;margin-top:6px">Medium</span></span>
+      <span class="val">Ageing treated<span class="k k--faint" style="position:relative;display:block;margin-top:6px">Low</span></span>
+      <span class="val">Science outruns institutions<span class="k k--faint" style="position:relative;display:block;margin-top:6px">Speculative</span></span>
+    </div>
+
+    <div class="tbl-row" style="grid-template-columns:176px 220px 220px 220px 220px;column-gap:16px;height:82px">
+      <span class="rowlab"><img src="../../../brands/relay/icons/ic_users_ink.png" alt="">Society and governance</span>
+      <span class="val lead">Persuasion at scale<span class="k k--faint" style="position:relative;display:block;margin-top:6px;font-weight:400">High</span></span>
+      <span class="val">Countries diverge<span class="k k--faint" style="position:relative;display:block;margin-top:6px">Medium</span></span>
+      <span class="val">Income decouples from work<span class="k k--faint" style="position:relative;display:block;margin-top:6px">Low</span></span>
+      <span class="val">Who decides<span class="k k--faint" style="position:relative;display:block;margin-top:6px">Speculative</span></span>
+    </div>
+
+    <div class="tbl-row" style="grid-template-columns:176px 220px 220px 220px 220px;column-gap:16px;height:82px">
+      <span class="rowlab"><img src="../../../brands/relay/icons/ic_zap_ink.png" alt="">Daily life</span>
+      <span class="val lead">An agent on every phone<span class="k k--faint" style="position:relative;display:block;margin-top:6px;font-weight:400">High</span></span>
+      <span class="val">Tutors and self-driving<span class="k k--faint" style="position:relative;display:block;margin-top:6px">Medium</span></span>
+      <span class="val">Robots at home<span class="k k--faint" style="position:relative;display:block;margin-top:6px">Low</span></span>
+      <span class="val">Meaning over employment<span class="k k--faint" style="position:relative;display:block;margin-top:6px">Speculative</span></span>
+    </div>
+  </div>
+
+  <div class="legendrow" style="left:80px;top:588px">
+    <span class="tag tag--high">High</span><span>High: would be surprised if wrong</span>
+    <span class="tag tag--med" style="margin-left:22px">Medium</span><span>Medium: more likely than not</span>
+  </div>
+  <div class="legendrow" style="left:80px;top:616px">
+    <span class="tag tag--low">Low</span><span>Low: one plausible path among several</span>
+    <span class="tag tag--spec" style="margin-left:22px">Speculative</span><span>Speculative: a direction, not a date</span>
+  </div>
+
+  <div class="foot">
+    <img class="wm" src="../../../brands/relay/logo_primary.png" alt="Relay">
+    <span class="meta">(C) RELAY - CONFIDENTIAL</span>
+  </div>
+  <div class="page">8</div>
+</div>
+</body></html>

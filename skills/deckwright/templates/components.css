@@ -1,0 +1,421 @@
+/* The component vocabulary in CSS: one class per deck_kit component and
+   primitive, each carrying the geometry contract the builder uses, so a
+   draft authored with these classes ports 1:1.
+
+   Imported by templates/slide.css after the brand's tokens. Every colour
+   and size here is a token; nothing is a literal, so a rebrand swaps
+   tokens.css and this file stays.
+
+   Conventions
+   - Everything is positioned absolutely inside .slide (1280x720) and the
+     draft sets left/top/width/height inline, in px, with the same numbers
+     the builder will pass to the corresponding function.
+   - Inside a .grid (equal columns) or a .card, children are positioned
+     relative to the parent instead; the draft writes the offset from the
+     parent's corner (x + 14 in the builder becomes left: 14px).
+   - Type sizes are the brand's --t-* tokens; the builder re-derives points
+     from them (references/03-pptx-stage.md, "Typography does not").
+   - Tone modifiers (--amber, --panel, --muted, --inverse) name a swatch,
+     never a meaning: the deck decides that MEDIUM is amber. */
+
+/* --- primitives ------------------------------------------------------------ */
+
+/* .card  ->  primitives.rrect(fill=WHITE, line=CELL_BD, lw=0.75, rad=8)
+   The ground for a stack of text. Tone modifiers change the border to the
+   colours a builder passes as `line`: --blue is BLUE 1.0, --amber is AMB,
+   --line is LINE, --muted is MUTED (the milestone card borders). */
+.card {
+  position: absolute;
+  background: var(--white);
+  border: 0.75px solid var(--cell-bd);
+  border-radius: 8px;
+}
+.card--blue  { border: 1px solid var(--blue) }
+.card--amber { border: 1px solid var(--amb) }
+.card--line  { border: 1px solid var(--line) }
+.card--muted { border: 1px solid var(--muted) }
+.card--r6    { border-radius: 6px }
+
+/* .band  ->  primitives.rrect(fill=BLUE, rad=8) + xmlfill.grad(
+                  [(0, BLUE_DARK, a), (100, BLUE, a)], ang=0)
+   A rounded gradient ground, left to right, white ink. --band-alpha is the
+   stop alpha the builder passes (100 = 1); .band--faded sets .56 and a
+   draft overrides it inline (style="--band-alpha:.78") to fade a band as
+   confidence falls. .band--headline is the 100 -> 82 fade of a headline
+   band; .band--column is one colour 100 -> 70 (a column head), blue by
+   default, amber with .band--amber. */
+.band {
+  --band-alpha: 1;
+  --band-alpha-to: var(--band-alpha);
+  position: absolute;
+  border-radius: 8px;
+  color: var(--white);
+  background: linear-gradient(90deg,
+      rgba(var(--blue-dark-rgb), var(--band-alpha)),
+      rgba(var(--blue-rgb), var(--band-alpha-to)));
+}
+.band--faded    { --band-alpha: .56 }
+.band--headline { --band-alpha-to: .82 }
+.band--column {
+  background: linear-gradient(90deg,
+      rgba(var(--blue-rgb), 1), rgba(var(--blue-rgb), .7));
+}
+.band--column.band--amber {
+  background: linear-gradient(90deg,
+      rgba(var(--amb-leg-rgb), 1), rgba(var(--amb-leg-rgb), .7));
+}
+.band--r6 { border-radius: 6px }
+
+/* Text inside a band. The builder writes each as its own textbox anchored
+   MIDDLE; here the band is a flex row and the draft sets the padding to the
+   builder's inset (x + 14 -> padding: 0 14px). */
+.band-label {                     /* T_COL_HEAD bold upper, anchor MIDDLE */
+  display: flex; align-items: center; height: 100%;
+  font-size: var(--t-col-head); font-weight: 700; text-transform: uppercase;
+  line-height: var(--ls-label);
+}
+.band-title {                     /* T_TITLE bold, LS_TITLE, anchor MIDDLE */
+  display: flex; align-items: center; height: 100%;
+  font-size: var(--t-title); font-weight: 700; line-height: var(--ls-title);
+}
+.band .name  {                    /* T_PILL bold, one line, no wrap */
+  display: block; font-size: var(--t-pill); font-weight: 700;
+  line-height: 18px; white-space: nowrap;      /* the builder's 18 px box */
+}
+.band .grade {                    /* T_COL_SUB bold upper on the next line */
+  display: block; font-size: var(--t-col-sub); font-weight: 700;
+  text-transform: uppercase; line-height: var(--ls-label);
+}
+
+/* .chip  ->  primitives.chip(w, h=20, text, T_META bold, fg, fill, border, lw=.75)
+   A pill-shaped label: radius is half the height, width is the measured
+   text plus 22 (11 a side), no wrap. Default is white on blue; the tone
+   modifiers are the (fg, fill, border) triples a deck passes:
+     .chip--inverse  BLUE on WHITE, border WHITE   (a chip on a blue band)
+     .chip--amber    AMB_TXT on AMB_BG, border AMB
+     .chip--panel    GREY on PANEL, border LINE
+     .chip--outline  MUTED on WHITE, border MUTED
+   .chip--tall is the 22 px variant. */
+.chip {
+  position: absolute;
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 20px; padding: 0 11px; border-radius: 999px;
+  background: var(--blue); color: var(--white); border: 0.75px solid var(--blue);
+  font-size: var(--t-meta); font-weight: 700; text-transform: uppercase;
+  line-height: var(--ls-label); white-space: nowrap;
+}
+.chip--tall    { height: 22px }
+.chip--inverse { background: var(--white); color: var(--blue); border-color: var(--white) }
+.chip--amber   { background: var(--amb-bg); color: var(--amb-txt); border-color: var(--amb) }
+.chip--panel   { background: var(--panel); color: var(--grey); border-color: var(--line) }
+.chip--outline { background: var(--white); color: var(--muted); border-color: var(--muted) }
+
+/* .numcircle  ->  primitives.numcircle(x, y, sz=22, n, fill=BLUE, fg=WHITE, T_CAPTION)
+   The draft sets width and height together when the size is not 22. */
+.numcircle {
+  position: absolute;
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--blue); color: var(--white);
+  font-size: var(--t-caption); line-height: 1; white-space: nowrap;
+}
+
+/* .rule  ->  primitives.rule(x, y, w, h, color)
+   A hairline: 1 px LINE unless a modifier says otherwise. Height inline
+   when it is not 1 (the matrix header rule is 2, the rail is 3). */
+.rule {
+  position: absolute;
+  height: 1px; background: var(--line);
+}
+.rule--blue { background: var(--blue) }
+.rule--v    { width: 1px; height: auto }
+
+/* --- components ------------------------------------------------------------ */
+
+/* .pill  ->  components.draw_pill(x, y, w, h, pill, font, T_PILL, T_PILL_SUB)
+   height 23, or 32 with a sublabel; radius 7; width is the measured title
+   plus 20 (10 a side); bold title centred, the sublabel regular below it.
+   Default is PillStyle(fill=WHITE, line=BLUE, lw=1.2, fg=NAVY); tones:
+     .pill--amber    fill AMB_BG, line AMB 1.5, fg NAVY, sub AMB_TXT
+     .pill--red      fill RED_BG, line RED 1.5, fg NAVY
+     .pill--panel    fill PANEL, line LINE 1.2, fg GREY, sub MUTED
+     .pill--outline  fill WHITE, line MUTED 1.0, fg MUTED, sub MUTED
+   .pill--bar adds the 3 px underline bar (inset 10, 6 above the bottom)
+   and 4 px of height, as flow_pills budgets for it.
+   `rad` is a parameter on draw_pill and flow_pills, defaulting to 7; a
+   brand whose radius scale is sharper passes its own, and .pill--square is
+   the draft's way of saying so (brands/relay passes RAD_CONTROL, 2). */
+.pill {
+  position: relative;
+  display: inline-flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  height: 23px; padding: 0 10px; border-radius: 7px;
+  background: var(--white); color: var(--navy); border: 1.2px solid var(--blue);
+  font-size: var(--t-pill); font-weight: 700; line-height: 1; white-space: nowrap;
+}
+.pill:has(.sub) { height: 32px }
+.pill .sub {
+  display: block; font-weight: 400; font-size: var(--t-pill-sub);
+  line-height: 1.05; margin-top: 2px;
+}
+.pill--amber   { background: var(--amb-bg); border: 1.5px solid var(--amb) }
+.pill--amber .sub   { color: var(--amb-txt) }
+.pill--red     { background: var(--red-bg); border: 1.5px solid var(--red) }
+/* PillStyle(fill=WHITE, line=LINE, lw=1.2, fg=NAVY): the plain pill on a
+   brand whose accent is a scarce signal colour. Twelve accent outlines in
+   one matrix is twelve orange elements on one slide. */
+.pill--quiet   { border: 1.2px solid var(--line) }
+.pill--square  { border-radius: var(--rad-control) }
+.pill--panel   { background: var(--panel); border-color: var(--line); color: var(--grey) }
+.pill--panel .sub   { color: var(--muted) }
+.pill--outline { border: 1px solid var(--muted); color: var(--muted) }
+.pill--bar     { padding-bottom: 4px }
+.pill--bar::after {
+  content: ""; position: absolute; left: 10px; right: 10px; bottom: 6px;
+  height: 3px; background: var(--blue);
+}
+
+/* .flow  ->  components.flow_pills(slide, cell, pills, ...)
+   The cell is the box; pills wrap inside it with 6 between pills and 3
+   between rows, centred both ways, 6 px inset a side (avail = w - 12).
+   .flow--left is align="left". The ladder (9.5 -> 9.0 -> 8.5 pt) has no
+   CSS counterpart: if the pills do not fit here, they will not fit there. */
+.flow {
+  position: absolute;
+  display: flex; flex-wrap: wrap; gap: 3px 6px;
+  align-content: center; justify-content: center; padding: 0 6px;
+}
+.flow--left { justify-content: flex-start }
+
+/* .matrix  ->  components.matrix_frame(slide, top, row_h, cols, rows, geom, ...)
+   A grid: the row-label gutter (--row-label-w) then N equal columns
+   separated by --col-gap, which is exactly geometry.columns(). The header
+   row is 32 tall (hdr_h) with a 2 px BLUE rule at its foot; rows are
+   --row-h tall with 8 (rgap) between. The draft sets top, --cols and
+   --row-h inline; left and width are the content band.
+   Cell order in the markup: one empty div, N heads, then per row one
+   .row-label and N .cell. */
+.matrix {
+  --cols: 3;
+  --row-h: 96px;
+  position: absolute;
+  left: var(--left); width: var(--width);
+  display: grid;
+  grid-template-columns: var(--row-label-w) repeat(var(--cols), 1fr);
+  grid-template-rows: 32px;
+  grid-auto-rows: var(--row-h);
+  column-gap: var(--col-gap); row-gap: 8px;
+}
+.matrix > .head {                 /* the header cell: 32 tall, rule at its foot */
+  height: 32px; padding-left: 2px; margin-top: -2px;
+  border-bottom: 2px solid var(--blue);
+}
+/* matrix_frame's `accent` is the ink the frame is drawn in and defaults to
+   the brand's BLUE. A brand whose accent is a scarce signal colour passes a
+   quieter one - brands/relay allows one orange element per view and three
+   header rules in it would spend that budget on furniture - and a draft on
+   such a brand says so with .head--ink on the header cell and .ink-navy on
+   the labels. */
+.matrix > .head--ink { border-bottom-color: var(--navy) }
+.col-head {                       /* T_COL_HEAD bold upper BLUE, 16 tall */
+  font-size: var(--t-col-head); font-weight: 700; text-transform: uppercase;
+  color: var(--blue); line-height: 16px; white-space: nowrap;
+}
+.col-sub {                        /* T_COL_SUB GREY, 12 tall; the case comes from the copy */
+  font-size: var(--t-col-sub); color: var(--grey); line-height: 12px;
+  margin-top: 2px; white-space: nowrap;
+}
+/* .row-label  ->  the matrix row label: an 18 px icon at left + 44, then
+   T_ROW_LABEL bold upper BLUE, right-aligned to 6 px short of the gutter,
+   any number of lines at 1.15. */
+.row-label {
+  position: relative;
+  display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 6px; text-align: right;
+  font-size: var(--t-row-label); font-weight: 700; text-transform: uppercase;
+  color: var(--blue); line-height: 1.15;
+}
+.row-label img {
+  position: absolute; left: 44px; top: calc(50% - 9px); width: 18px; height: 18px;
+}
+/* .cell  ->  the matrix cell: rrect(fill=WHITE, line=CELL_BD, lw=.75, rad=8)
+   with alpha_fill(WHITE, 42). Pills flow inside it as in .flow.
+   .cell--empty is the dashed, unfilled cell with a centred "-" in MUTED. */
+.cell {
+  background: rgba(var(--white-rgb), .42);
+  border: 0.75px solid var(--cell-bd); border-radius: 8px;
+  display: flex; flex-wrap: wrap; gap: 3px 6px;
+  align-content: center; justify-content: center; padding: 0 6px;
+}
+.cell--empty {
+  background: none; border-style: dashed; border-width: 0.9px;
+  color: var(--muted); font-size: var(--t-body);
+}
+/* `cell_rad` is a parameter on matrix_frame, defaulting to 8. A brand whose
+   surfaces are square passes its own: brands/relay passes RAD_SURFACE, 0,
+   and a draft on that brand says so with .cell--square. */
+.cell--square { border-radius: var(--rad-surface) }
+
+/* .explain  ->  components.explain_box(slide, cell, title, desc, ...)
+   The draft positions the CELL; the white box is drawn 6 px inside it
+   (rrect at x+6, y+6, w-12, h-12, line BLUE 1.2, rad 8), and the text sits
+   at x+16, y+8, w-32, h-16, anchored MIDDLE: the title at T_CAPTION bold
+   NAVY 1.15, the description at T_CARD_DESC GREY 1.2, 1 pt below. */
+.explain {
+  position: absolute;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 8px 16px; isolation: isolate;
+}
+.explain::before {
+  content: ""; position: absolute; inset: 6px; z-index: -1;
+  background: var(--white); border: 1.2px solid var(--blue); border-radius: 8px;
+}
+.explain .head {
+  font-size: var(--t-caption); font-weight: 700; color: var(--navy);
+  line-height: var(--ls-card);
+}
+.explain .desc {
+  font-size: var(--t-card-desc); color: var(--grey);
+  line-height: var(--ls-body); margin-top: 1px;
+}
+
+/* .loop-line  ->  components.loop_line(slide, y, runs, geom, ..., h=24)
+   A full-width single-line note across the content band: WHITE at alpha
+   72, LINE .75, radius 6, 24 tall; text at left + 16, T_LOOP GREY, no
+   wrap. The builder measures the flat string against width - 28 and warns
+   OVERFLOW; the draft shows the overrun instead. */
+.loop-line {
+  position: absolute;
+  left: var(--left); width: var(--width); height: 24px;
+  display: flex; align-items: center; padding: 0 16px;
+  background: rgba(var(--white-rgb), .72);
+  border: 0.75px solid var(--line); border-radius: 6px;
+  font-size: var(--t-loop); color: var(--grey);
+  line-height: var(--ls-label); white-space: nowrap;
+}
+
+/* .legend  ->  an rrect(fill=WHITE, line=LINE, lw=.75, rad=5) 18 tall, its
+   width measured from the runs plus 24, right edge on --right, T_LEGEND
+   bold centred, each run in its own ink (the ink-* utilities below). */
+.legend {
+  position: absolute;
+  right: calc(1280px - var(--right)); height: 18px;
+  display: inline-flex; align-items: center; gap: 24px; padding: 0 12px;
+  background: var(--white); border: 0.75px solid var(--line); border-radius: 5px;
+  font-size: var(--t-legend); font-weight: 700; color: var(--grey);
+  line-height: var(--ls-label); white-space: nowrap;
+}
+/* .legend-row  ->  a chip then a caption on one 20 px line, 8 apart:
+   chip(...) + textbox(x + cw + 8, y, tw, 20, text, T_CAPTION, GREY). */
+.legend-row {
+  position: absolute;
+  display: flex; align-items: center; gap: 8px; height: 20px;
+  font-size: var(--t-caption); color: var(--grey); white-space: nowrap;
+}
+.legend-row .chip { position: static }
+
+/* --- the horizontal timeline --------------------------------------------- */
+
+/* .rail  ->  primitives.rule(x, y, w, 3, BLUE): the year rail. */
+.rail {
+  position: absolute;
+  height: 3px; background: var(--blue);
+}
+/* .tick  ->  rule(x - .5, rail_y - 6, 1.5, 15, BLUE) and a T_META MUTED label
+   centred under it at rail_y + 12. The draft puts left at the tick's x and
+   top at rail_y - 6; the element centres itself on that x. */
+.tick {
+  position: absolute;
+  width: 72px; margin-left: -36px; padding-top: 18px;
+  text-align: center; font-size: var(--t-meta); color: var(--muted);
+  line-height: 14px; white-space: nowrap;
+}
+.tick::before {
+  content: ""; position: absolute; left: calc(50% - .75px); top: 0;
+  width: 1.5px; height: 15px; background: var(--blue);
+}
+/* .milestone  ->  numcircle(cx - 11, cy - 11, 22, n, BLUE, WHITE, T_CAPTION)
+                   + rule(cx - .5, ..., 1, ..., LINE)   the connector
+                   + rrect(card_x, card_y, 150, 74, WHITE, line=<tone>, 1.0, rad 6)
+   The element is a zero-size anchor at (cx, cy = rail_y + 1.5), the centre
+   of the circle. .milestone--above puts the card's foot 26 above the rail
+   (card_y = rail_y - 26 - 74); .milestone--below puts its head 40 below
+   (card_y = rail_y + 40). The connector runs between the circle and the
+   card. The card is 150 wide, centred on cx; the builder clamps card_x to
+   the content band, and a draft near the edges sets left on the card by
+   hand. Inside the card: the head at +10, +6 (year bold BLUE, the grade
+   after it in its ink, T_COL_SUB upper, one line) and the label at +10,
+   +22 (T_CAPTION NAVY 1.15). */
+.milestone { position: absolute; width: 0; height: 0 }
+.milestone::before {
+  content: ""; position: absolute; left: -0.5px; width: 1px; background: var(--line);
+}
+.milestone .numcircle { left: -11px; top: -11px }
+.milestone .card { left: -75px; width: 150px; height: 74px; border-radius: 6px; padding: 6px 10px }
+.milestone--above::before { top: -27.5px; height: 16.5px }
+.milestone--above .card   { top: -101.5px }
+.milestone--below::before { top: 11px; height: 27.5px }
+.milestone--below .card   { top: 38.5px }
+.milestone .head {
+  height: 16px; font-size: var(--t-col-sub); font-weight: 700; color: var(--blue);
+  text-transform: uppercase; line-height: 14px; white-space: nowrap;
+}
+.milestone .head .grade { font-weight: 400; margin-left: 9px }
+.milestone .label {
+  font-size: var(--t-caption); color: var(--navy); line-height: var(--ls-card);
+}
+
+/* --- the cover --------------------------------------------------------------- */
+
+/* .cover-title  ->  textbox(L, 250, W, 100, [(title, True)], T_COVER, TITLE, LS_TITLE)
+   .cover-sub    ->  textbox(L, 360, W, 40, sub, T_SUB, MUTED, LS_BODY)
+   .cover-note   ->  textbox(L, 400, W, 20, note, T_META, MUTED, LS_LABEL) */
+.cover-title {
+  position: absolute; left: var(--left); top: 250px; width: var(--width);
+  font-size: var(--t-cover); font-weight: 700; color: var(--title);
+  line-height: var(--ls-title);
+}
+.cover-sub {
+  position: absolute; left: var(--left); top: 360px; width: var(--width);
+  font-size: var(--t-sub); color: var(--muted); line-height: var(--ls-body);
+}
+.cover-note {
+  position: absolute; left: var(--left); top: 400px; width: var(--width);
+  font-size: var(--t-meta); color: var(--muted); line-height: var(--ls-label);
+}
+
+/* --- helpers ----------------------------------------------------------------- */
+
+/* .grid  ->  equal columns across a band with the brand gap:
+   col_w = (W - (n - 1) * gap) / n, which is what every builder computes
+   by hand. The draft sets left, top, width, height inline and --gap when
+   it is not COL_GAP. Children lose their absolute positioning and fill a
+   column each; anything inside a child is positioned from the child's
+   corner. */
+.grid {
+  --gap: var(--col-gap);
+  position: absolute;
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  column-gap: var(--gap);
+}
+.grid > * { position: relative; inset: auto }
+
+/* Free text placed at a builder textbox's coordinates. .text is the box;
+   the type classes match the T_* the builder would pass. */
+.text { position: absolute; line-height: var(--ls-body); color: var(--grey) }
+.text--head { font-size: var(--t-col-head); font-weight: 700; color: var(--navy); line-height: var(--ls-label) }
+.text--body { font-size: var(--t-body) }
+.text--body-bold { font-size: var(--t-body); font-weight: 700; color: var(--navy); line-height: var(--ls-card) }
+.text--caption { font-size: var(--t-caption) }
+.text--mid { display: flex; align-items: center }   /* anchor=MSO_ANCHOR.MIDDLE */
+
+/* Ink utilities: the per-run colours a builder passes as the third element
+   of a run tuple. */
+.ink-blue    { color: var(--blue) }
+.ink-navy    { color: var(--navy) }
+.ink-grey    { color: var(--grey) }
+.ink-muted   { color: var(--muted) }
+.ink-amber   { color: var(--amb-txt) }
+.ink-red     { color: var(--red) }
+.ink-amb-leg { color: var(--amb-leg) }
+.ink-white   { color: var(--white) }

@@ -1,0 +1,58 @@
+# Rules for examples/ai-horizon, and for BOTH of its outputs. run.ps1 lints
+# the built .pptx and asserts all eight checks run; run_html.ps1 lints the
+# drafts directory and asserts seven, because notes_only is skipped with a
+# reason on drafts, which carry no speaker notes. One rules file, because the
+# content constraints belong to the deck and not to the file format it ships
+# as.
+
+[typos]
+# "labor" is NOT a needle: the check is a substring match and "collaboration"
+# contains it (found on S07 the first time the ai-horizon lint ran).
+needles = ["ASSESSEMENT", "recieve", "seperate", "judgment"]
+
+[codes]
+patterns = ['\bD[123]-\d{2}\b', '\bDA-\d{2}\b']
+
+[forbidden]
+# Spec section 1: no vendor, product or laboratory names. The forecast is
+# about the technology, not about who ships it. Kept verbatim from the
+# ai-horizon rules; the design system does not change what may be said.
+tokens = ["OpenAI", "Anthropic", "DeepMind", "Nvidia", "ChatGPT", "Gemini", "Claude"]
+
+[required]
+# style.COPYRIGHT, written already uppercase in the source so that this file,
+# the spec and the slide all read the same characters. Relay sets every
+# footer as a mono label, and a mono label is UPPERCASE.
+strings = ["(C) RELAY - CONFIDENTIAL"]
+exempt = [1]
+
+[kickers]
+# The pattern accepts letters, space, dot and ampersand only, so a kicker
+# carrying a digit ("05. TOWARD 2050") would cut the match short. S03's
+# milestone heads read "01 - 2027", with no dot after the number, so they
+# cannot match. The class names its accented capitals because `[A-Z]` stops
+# at the first one - see references/05-qa.md, "The kicker pattern is a
+# language decision". On the drafts directory the match folds case: the
+# markup writes "01. How to read this" and the CSS uppercases it.
+pattern = '\b0[1-9]\. [A-ZÁÉÍÓÚÜÑ][A-ZÁÉÍÓÚÜÑ .&]{2,60}'
+allowed = [
+  "01. HOW TO READ THIS",
+  "02. THE HORIZON MAP",
+  "03. THE NEXT YEARS",
+  "04. THE NEXT DECADE",
+  "05. APPROACHING MIDCENTURY",
+  "06. BEYOND MIDCENTURY",
+  "07. IMPACT BY DOMAIN",
+  "08. WHAT HAS TO BE TRUE",
+  "09. WHAT WOULD CHANGE THIS",
+]
+exempt = [1]
+
+[notes_only]
+strings = ["If asked"]
+
+[exact]
+spec = "spec.md"
+
+[assets]
+brand = "relay"

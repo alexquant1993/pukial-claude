@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Slide draft</title>
+<!-- Serve from the repository root so this relative href, and the @imports
+     inside it (the brand's tokens, then the component vocabulary), all
+     resolve:
+       uv run --offline --no-project python scripts/preview.py serve --root .
+     then open http://127.0.0.1:8123/templates/slide.html -->
+<link rel="stylesheet" href="slide.css">
+</head>
+<body>
+<!--
+  The starting point for a slide draft.
+
+  This file is DISPOSABLE. Once its layout is approved it is ported to a
+  builder, and from that moment the builder is the source of truth: nothing
+  keeps this in sync, and pretending otherwise is how the source engagement
+  ended up with a handoff that had to say so in writing.
+
+  Copy it into examples/<your-slide>/drafts/ or wherever the deck lives, fix
+  the stylesheet href, put the content in, iterate with scripts/preview.py,
+  then write the builder. Every class below is one deck_kit call, and the
+  inline left/top/width/height are the numbers that call takes:
+  templates/components.css names the function beside each class.
+  examples/ai-horizon/drafts/ is the worked example.
+-->
+<main class="slide">
+  <!-- style.header(): the furniture every content slide carries. -->
+  <div class="tagline">Technology that moves the business.</div>
+  <div class="kicker">01. Section</div>
+  <h1 class="title">The slide title goes here</h1>
+  <p class="sub">One sentence saying what the slide argues, not what it contains.</p>
+  <div class="lockup">
+    <img class="primary" src="../brands/relay/logo_primary.png" alt="">
+    <span class="divider"></span>
+    <img class="secondary" src="../brands/relay/logo_inverse.png" alt="">
+  </div>
+
+  <!-- Content between y=126 and y=660, inside the band 48..1232. One
+       instance of each major class, so the vocabulary is visible; delete
+       what the slide does not use. -->
+
+  <!-- .band: a gradient ground; .band-title is the headline inside it. -->
+  <div class="band band--headline" style="left:48px;top:126px;width:1184px;height:64px;padding:0 20px">
+    <div class="band-title">A headline band, two title lines tall</div>
+    <span class="chip chip--inverse chip--tall" style="right:16px;top:21px">Chip</span>
+  </div>
+
+  <!-- .grid: equal columns with the brand gap; children fill a column each. -->
+  <div class="grid" style="left:48px;top:206px;width:1184px;height:120px">
+    <!-- .card with a .band head, a rule and a chip, all placed from the card's corner. -->
+    <div class="card">
+      <div class="band" style="left:0;top:0;width:100%;height:40px;padding:0 14px">
+        <div class="band-label">Card head</div>
+      </div>
+      <div class="text text--body-bold" style="left:14px;top:52px;width:calc(100% - 28px)">A card title</div>
+      <div class="rule" style="left:14px;top:84px;width:calc(100% - 28px)"></div>
+      <span class="chip" style="left:14px;top:92px">Label</span>
+    </div>
+    <!-- .explain: the cell is positioned; the white box is drawn 6 inside it. -->
+    <div class="explain">
+      <div class="head">An explain box</div>
+      <div class="desc">One or two sentences of description under a bold caption title.</div>
+    </div>
+    <!-- .flow: pills wrapping inside a cell, with the pill tones. -->
+    <div class="flow">
+      <span class="pill">A pill</span>
+      <span class="pill pill--amber">Amber<span class="sub">with a sublabel</span></span>
+      <span class="pill pill--panel">Panel</span>
+      <span class="pill pill--outline">Outline</span>
+    </div>
+  </div>
+
+  <!-- .matrix: the row-label gutter then N columns; header row then rows.
+  <div class="matrix" style="top:340px;--cols:3;--row-h:96px">
+    <div></div>
+    <div class="head"><div class="col-head">Column</div><div class="col-sub">SUBLABEL</div></div>
+    ... two more heads ...
+    <div class="row-label"><img src="../brands/relay/icons/ic_zap_ink.png" alt="">Row</div>
+    <div class="cell"><span class="pill">A pill</span></div>
+    <div class="cell"><span class="pill">A pill</span></div>
+    <div class="cell cell--empty">-</div>
+  </div>
+  -->
+
+  <!-- A horizontal timeline: .rail, .tick and .milestone (see s03 in the
+       ai-horizon drafts for all seven).
+  <div class="rail" style="left:78px;top:372px;width:1124px"></div>
+  <div class="tick" style="left:88px;top:366px">2026</div>
+  <div class="milestone milestone--above" style="left:126px;top:373.5px">
+    <div class="numcircle">1</div>
+    <div class="card card--blue"><div class="head">2027<span class="grade ink-blue">High</span></div>
+      <div class="label">A milestone label on two lines</div></div>
+  </div>
+  -->
+
+  <!-- .loop-line: a full-width single-line note. -->
+  <div class="loop-line" style="top:604px"><b>Learning loop:</b>&nbsp;a transversal note across the content band</div>
+
+  <!-- The cover, on a slide of its own, uses .cover-title, .cover-sub and
+       .cover-note and none of the header furniture. -->
+
+  <div class="foot">(C) RELAY - CONFIDENTIAL</div>
+  <div class="page">1</div>
+</main>
+</body>
+</html>

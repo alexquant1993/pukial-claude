@@ -1,0 +1,273 @@
+/* The Relay draft skeleton, and Relay's own slide vocabulary.
+
+   templates/slide.css is the generic skeleton a new brand copies. This file
+   exists rather than reusing it because that file's header furniture is the
+   kit's - a tagline row, a kicker, a title, a sub and a two-mark lockup top
+   right. Relay's header is a 3px rule, a mono kicker and a display heading,
+   and its mark is in the footer. Those are brand rules, and
+   references/02-html-stage.md says brand-specific rules live in the brand's
+   own CSS. Every draft in this repository links THIS file.
+
+   Import order: Relay's tokens, then the shared component vocabulary that
+   is styled with them. Serve from the repository root, never from the slide
+   directory: an @import resolves against the importing stylesheet's own
+   URL, so a server rooted lower normalises ../../ back past the root and
+   404s in silence.
+
+   Every class below is a geometry contract the builder reproduces, the same
+   way templates/components.css's are: the inline left/top/width/height on
+   an element are the numbers the builder passes. */
+
+@import url("tokens.css");
+@import url("../../templates/components.css");
+
+* { margin: 0; padding: 0; box-sizing: border-box }
+
+/* 1280x720 is the canvas the builder works on. Relay's own kit is
+   1920x1080; every length here is that kit's, scaled by 2/3. */
+html, body { width: 1280px; height: 720px; overflow: hidden }
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--bg);
+}
+.slide {
+  position: relative; width: 1280px; height: 720px; overflow: hidden;
+  background: var(--paper);
+}
+/* section[data-theme="dark"] in Relay's kit. The builder paints this as one
+   full-bleed rrect at the bottom of the shape tree (style.dark_ground), not
+   as a second layout in the template - style.py says why. */
+.slide.dark { background: var(--dark); color: var(--ink-300) }
+
+/* --- the header furniture (style.header) --------------------------------
+   rule, kicker, title, sub, top to bottom. Relay opens a section with "a
+   3px black rule under a mono kicker plus a display heading", and its kit
+   sets the rule as a border-top above the kicker. */
+.slide > .rule-open {
+  position: absolute; left: var(--left); top: var(--rule-y);
+  width: var(--width); height: var(--rule-heavy); background: var(--ink-1000);
+}
+.slide > .kicker {
+  position: absolute; left: var(--left); top: var(--kicker-y);
+  width: var(--width); height: 14px;
+  font-family: var(--mono);
+  font-size: var(--t-eyebrow); letter-spacing: var(--track-mono);
+  text-transform: uppercase; line-height: var(--ls-label); color: var(--signal-500);
+}
+.slide > .title {
+  position: absolute; left: var(--left); top: var(--title-y);
+  width: var(--title-avail); height: 42px;
+  font-family: var(--display);
+  font-size: var(--t-title); font-weight: 700; letter-spacing: var(--track-display);
+  line-height: var(--ls-title); color: var(--title);
+}
+.slide > .sub {
+  position: absolute; left: var(--left); top: var(--sub-y);
+  width: var(--sub-avail); height: 24px;
+  font-size: var(--t-sub); line-height: var(--ls-body); color: var(--grey);
+}
+.slide.dark > .title { color: var(--paper) }
+.slide.dark > .sub   { color: var(--ink-300) }
+
+/* --- the footer (style.footer) ------------------------------------------
+   Wordmark left, copyright next to it, page number right, all on one mono
+   line. Relay gives every slide the same footer, so it is furniture. */
+.foot {
+  position: absolute; left: var(--left); top: calc(var(--foot-y) + 1px);
+  height: 14px; display: flex; align-items: center; gap: 20px;
+}
+.foot .wm { height: 13px; width: auto }        /* logo_primary.png, by height */
+.foot .meta {
+  font-family: var(--mono);
+  font-size: var(--t-foot); letter-spacing: var(--track-mono);
+  line-height: var(--ls-label); color: var(--faint); white-space: nowrap;
+}
+.slide.dark .foot .meta { color: var(--ink-500) }
+.page {
+  position: absolute; left: var(--page-x); top: var(--page-y);
+  width: var(--page-w); height: var(--page-h); text-align: right;
+  font-family: var(--mono);
+  font-size: var(--t-meta); letter-spacing: var(--track-wide);
+  line-height: var(--ls-label); color: var(--faint);
+}
+.slide.dark .page { color: var(--ink-500) }
+
+/* --- Relay's own vocabulary ---------------------------------------------- */
+
+/* .k -> textbox(..., T_*, upper=True, spc=track(size, TRACK_MONO))
+   The mono label: eyebrows, metadata, table columns, source notes. Relay
+   sets these in JetBrains Mono, which fonts.toml fetches, and tracks them
+   open on top of it - the face and the tracking together are what makes a
+   label read as a label at 8 to 10 pt. Signal by default, because that is
+   what the kit's .k is; the modifiers are the quieter inks. */
+.k {
+  position: absolute; font-family: var(--mono);
+  font-size: var(--t-col-sub); letter-spacing: var(--track-mono);
+  text-transform: uppercase; line-height: var(--ls-label);
+  color: var(--signal-500); white-space: nowrap;
+}
+.k--mute  { color: var(--muted) }
+.k--faint { color: var(--faint) }
+.k--ink   { color: var(--ink-1000) }
+.k--paper { color: var(--paper) }
+.k--label { font-size: var(--t-eyebrow) }     /* T_EYEBROW, the larger label */
+.k--wrap  { white-space: normal }
+
+/* .disp -> textbox(..., bold, spc=track(size, TRACK_DISPLAY))
+   Display type: always tightened, never letterspaced positive, never
+   all-caps. --cover is the hero line, --head a slide-level statement,
+   --sub a card heading. */
+.disp {
+  position: absolute; font-family: var(--display); font-weight: 700;
+  letter-spacing: var(--track-display); line-height: var(--ls-title);
+  color: var(--title);
+}
+.disp--cover { font-size: var(--t-cover); line-height: var(--ls-flat) }
+.disp--head  { font-size: var(--t-headline) }
+.disp--sub   { font-size: var(--t-lead); letter-spacing: var(--track-tight) }
+.disp--paper { color: var(--paper) }
+
+/* .num -> textbox([(digits, True), (unit, True)], T_NUMERAL / T_UNIT)
+   The oversized numeral, Relay's signature device: display weight, tabular
+   figures, -0.04em, with a small unit beside it. The builder writes the
+   unit as a second run at T_UNIT rather than as a superscript, because
+   DrawingML's baseline shift and a measured layout do not agree. */
+.num {
+  position: absolute;
+  font-family: var(--display); font-weight: 700;
+  font-size: var(--t-numeral); letter-spacing: var(--track-display);
+  line-height: var(--ls-flat); font-variant-numeric: tabular-nums;
+  color: var(--title); white-space: nowrap;
+}
+.num .unit { font-size: var(--t-unit); letter-spacing: var(--track-tight) }
+.num--signal { color: var(--signal-500) }
+.num--paper  { color: var(--paper) }
+
+/* .r-rule -> primitives.rule(x, y, w, h, colour)
+   Relay's rules do the structural work. 1 hairline, 1.5 a table header,
+   2 an active edge, 3 a section opener. */
+.r-rule { position: absolute; height: var(--hair); background: var(--line) }
+.r-rule--strong { height: var(--rule-strong); background: var(--ink-1000) }
+.r-rule--heavy  { height: var(--rule-heavy); background: var(--ink-1000) }
+.r-rule--signal { height: var(--rule-heavy); background: var(--signal-500) }
+.r-rule--paper  { background: var(--ink-700) }
+
+/* .gcell / .gcells -> a butt-joined card grid.
+   "Card grids use 1px gaps over a hairline-colored background, so cards
+   butt against each other and read as a tight technical grid rather than
+   floating tiles." The builder draws the hairline ground as one rect and
+   the cells as N paper rects inside it, which is the same picture with one
+   shape more and no gap arithmetic in the renderer. */
+.gcells {
+  position: absolute; display: grid; gap: var(--grid-hair);
+  background: var(--line);
+}
+.gcell {
+  background: var(--paper); padding: 20px 20px 18px;
+  display: flex; flex-direction: column;
+}
+.slide.dark .gcells { background: var(--ink-700) }
+.slide.dark .gcell  { background: var(--ink-1000) }
+.gcell img { width: 18px; height: 18px; margin-bottom: 12px }
+.gcell .head {
+  font-size: var(--t-col-head); font-weight: 700;
+  letter-spacing: var(--track-tight); line-height: var(--ls-card);
+  color: var(--ink-1000);
+}
+.gcell .desc {
+  font-size: var(--t-card-desc); line-height: var(--ls-body);
+  color: var(--grey); margin-top: 8px;
+}
+
+/* .tag -> rrect(rad=RAD_CONTROL) + settext(T_PILL bold, upper)
+   Relay's Badge: a 2px-radius control, never a pill - "pill only for 5px
+   status dots". The four confidence grades are a monochrome ramp from a
+   solid ink fill to a hairline outline, because Relay forbids orange as a
+   status colour and a green-to-red ramp would read as good-to-bad, which
+   confidence is not. */
+.tag {
+  position: absolute; display: inline-flex; align-items: center;
+  height: 20px; padding: 0 9px; border-radius: var(--rad-control);
+  font-family: var(--mono);
+  font-size: var(--t-pill); font-weight: 700; letter-spacing: var(--track-mono);
+  text-transform: uppercase; line-height: var(--ls-label); white-space: nowrap;
+  background: var(--ink-1000); color: var(--paper); border: 1px solid var(--ink-1000);
+}
+.tag--high { background: var(--ink-1000); color: var(--paper); border-color: var(--ink-1000) }
+.tag--med  { background: var(--ink-600);  color: var(--paper); border-color: var(--ink-600) }
+.tag--low  { background: var(--paper); color: var(--ink-600); border-color: var(--ink-300) }
+.tag--spec { background: var(--paper); color: var(--faint);   border-color: var(--ink-200) }
+.tag--static { position: relative }
+
+/* .chiplist -> the wrapped row of tags a horizon slide's "what you will
+   notice" line carries. The builder measures each and wraps by hand; there
+   is no autoshrink ladder here, because Relay's tags do not shrink. */
+.chiplist {
+  position: absolute; display: flex; flex-wrap: wrap; gap: 8px;
+  align-content: flex-start;
+}
+.chiplist .tag { position: relative; background: var(--paper); color: var(--ink-1000);
+                 border-color: var(--ink-300); font-family: var(--sans);
+                 font-weight: 400; letter-spacing: var(--track-tight);
+                 text-transform: none }
+
+/* .tbl -> the matrix, drawn Relay's way: mono uppercase headers over a
+   1.5px header rule, then hairline-bottomed rows. No zebra striping, no
+   card wrappers, no rounded cells. */
+.tbl { position: absolute; left: var(--left); width: var(--width) }
+.tbl-head {
+  display: grid; align-items: end; padding-bottom: 10px;
+  border-bottom: var(--rule-medium) solid var(--ink-1000);
+  font-family: var(--mono);
+  font-size: var(--t-col-sub); letter-spacing: var(--track-mono);
+  text-transform: uppercase; color: var(--muted);
+}
+.tbl-row {
+  display: grid; align-items: center; padding: 14px 0;
+  border-bottom: var(--hair) solid var(--line);
+}
+.tbl-row .rowlab {
+  display: flex; align-items: center; gap: 10px;
+  font-size: var(--t-col-head); font-weight: 700;
+  letter-spacing: var(--track-tight); color: var(--ink-1000);
+}
+.tbl-row .rowlab img { width: 18px; height: 18px }
+.tbl-row .val { font-size: var(--t-caption); line-height: var(--ls-card); color: var(--grey) }
+.tbl-row .val.lead { color: var(--ink-1000); font-weight: 700 }
+
+/* .step -> a milestone on the year rail: a 1.5px tick on the rail, a mono
+   year and a short label. Alternating above and below so seven fit. */
+.step { position: absolute; width: 150px }
+.step .yr {
+  font-family: var(--mono);
+  font-size: var(--t-col-sub); font-weight: 700; letter-spacing: var(--track-mono);
+  line-height: var(--ls-label); color: var(--ink-1000);
+}
+.step .yr .grade { color: var(--muted); font-weight: 400; margin-left: 10px }
+.step .lab {
+  font-size: var(--t-caption); line-height: var(--ls-card);
+  color: var(--grey); margin-top: 6px;
+}
+.step--signal .yr { color: var(--signal-600) }
+
+/* .noteline -> a transversal single-line note across the content band, set
+   as a mono label over a hairline. Relay has no rounded ghost panel to put
+   it in; the rule is the container. */
+.noteline {
+  position: absolute; left: var(--left); width: var(--width);
+  padding-top: 12px; border-top: var(--hair) solid var(--line);
+  font-size: var(--t-loop); line-height: var(--ls-label); color: var(--grey);
+  white-space: nowrap;
+}
+.noteline--heavy { border-top-width: var(--rule-heavy); border-top-color: var(--ink-1000) }
+.noteline--signal { border-top-width: var(--rule-heavy); border-top-color: var(--signal-500) }
+.noteline b { font-weight: 700; color: var(--ink-1000) }
+
+/* .legendrow -> the four grades, each a tag and its exact string. */
+.legendrow {
+  position: absolute; display: flex; align-items: center; gap: 10px;
+  font-size: var(--t-legend); line-height: var(--ls-label); color: var(--grey);
+  white-space: nowrap;
+}
+.legendrow .tag { position: relative }

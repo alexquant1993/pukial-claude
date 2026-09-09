@@ -1,0 +1,101 @@
+# The faces this brand declares, and where to fetch them from.
+#
+# `scripts/fetch_fonts.py --brand relay` reads this file, downloads any face
+# that is not in `fonts/`, verifies it against the pinned sha256 and writes
+# the licence text alongside it. A face already on disk whose hash matches is
+# never re-downloaded and never rewritten; a face whose bytes moved is a
+# refusal, not an overwrite.
+#
+# Only the SIL Open Font License 1.1 is accepted. All three of Relay's named
+# families are OFL, which is why this brand no longer substitutes:
+# `brands/relay/fonts/README.md` is the account of what it used to do and why.
+#
+# Every URL is pinned to a release tag rather than to a branch, so the bytes
+# behind it do not move under the hash. Six faces: regular and bold for each
+# of the three roles, because `deck_kit.metrics.TextMetrics` addresses a
+# family as exactly two files and a variable font loads at one instance.
+#
+# `sha256` is empty only on a first fetch. The script downloads, prints the
+# hash it got, and a human pastes it here; every run after that verifies.
+
+# --- display: Space Grotesk ------------------------------------------------
+# Relay's --font-display. Upstream is the designer's own repository, which is
+# also where Google Fonts syncs from; its `fonts/ttf/static/` holds the four
+# named instances of the variable face.
+
+[[font]]
+family = "Space Grotesk"
+role = "display"
+weight = "regular"
+file = "SpaceGrotesk-Regular.ttf"
+url = "https://raw.githubusercontent.com/floriankarsten/space-grotesk/2.0.0/fonts/ttf/static/SpaceGrotesk-Regular.ttf"
+sha256 = "5ede28c4425f3fe4830c8f4754b39e9a87a93d0c3baa5e0a9924532aaa8a98bd"
+licence = "SIL Open Font License 1.1"
+licence_url = "https://raw.githubusercontent.com/floriankarsten/space-grotesk/2.0.0/OFL.txt"
+licence_file = "SpaceGrotesk-OFL.txt"
+
+[[font]]
+family = "Space Grotesk"
+role = "display"
+weight = "bold"
+file = "SpaceGrotesk-Bold.ttf"
+url = "https://raw.githubusercontent.com/floriankarsten/space-grotesk/2.0.0/fonts/ttf/static/SpaceGrotesk-Bold.ttf"
+sha256 = "7209bbb75fc0f5c546a5f5773b0db74ffc6abf04c2148c1105cace5765a96bdb"
+licence = "SIL Open Font License 1.1"
+licence_url = "https://raw.githubusercontent.com/floriankarsten/space-grotesk/2.0.0/OFL.txt"
+licence_file = "SpaceGrotesk-OFL.txt"
+
+# --- sans: Public Sans -----------------------------------------------------
+# Relay's --font-body. Upstream is the US Web Design System's fork of Libre
+# Franklin. Its LICENSE.md carries the full OFL 1.1 text and says in so many
+# words that the combined work is used under OFL 1.1, the GSA modifications
+# being CC0 on top of it.
+
+[[font]]
+family = "Public Sans"
+role = "sans"
+weight = "regular"
+file = "PublicSans-Regular.ttf"
+url = "https://raw.githubusercontent.com/uswds/public-sans/v2.001/fonts/ttf/PublicSans-Regular.ttf"
+sha256 = "b577e9bc9887284e90aae5ad0699689ce36b5cd96207efbec68f77f8aed88379"
+licence = "SIL Open Font License 1.1"
+licence_url = "https://raw.githubusercontent.com/uswds/public-sans/v2.001/LICENSE.md"
+licence_file = "PublicSans-LICENSE.md"
+
+[[font]]
+family = "Public Sans"
+role = "sans"
+weight = "bold"
+file = "PublicSans-Bold.ttf"
+url = "https://raw.githubusercontent.com/uswds/public-sans/v2.001/fonts/ttf/PublicSans-Bold.ttf"
+sha256 = "bddd96a0bcd49b292524b4beff57d770ce97482fb3f84b788959422e06b863a6"
+licence = "SIL Open Font License 1.1"
+licence_url = "https://raw.githubusercontent.com/uswds/public-sans/v2.001/LICENSE.md"
+licence_file = "PublicSans-LICENSE.md"
+
+# --- mono: JetBrains Mono --------------------------------------------------
+# Relay's --font-mono, which its kit uses for every kicker, footer label and
+# metadata line. Until this file existed the mono role was carried by tracking
+# alone; it is now carried by a monospaced face AND the tracking.
+
+[[font]]
+family = "JetBrains Mono"
+role = "mono"
+weight = "regular"
+file = "JetBrainsMono-Regular.ttf"
+url = "https://raw.githubusercontent.com/JetBrains/JetBrainsMono/v2.304/fonts/ttf/JetBrainsMono-Regular.ttf"
+sha256 = "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f"
+licence = "SIL Open Font License 1.1"
+licence_url = "https://raw.githubusercontent.com/JetBrains/JetBrainsMono/v2.304/OFL.txt"
+licence_file = "JetBrainsMono-OFL.txt"
+
+[[font]]
+family = "JetBrains Mono"
+role = "mono"
+weight = "bold"
+file = "JetBrainsMono-Bold.ttf"
+url = "https://raw.githubusercontent.com/JetBrains/JetBrainsMono/v2.304/fonts/ttf/JetBrainsMono-Bold.ttf"
+sha256 = "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb"
+licence = "SIL Open Font License 1.1"
+licence_url = "https://raw.githubusercontent.com/JetBrains/JetBrainsMono/v2.304/OFL.txt"
+licence_file = "JetBrainsMono-OFL.txt"

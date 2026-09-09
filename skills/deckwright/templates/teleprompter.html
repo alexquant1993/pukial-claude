@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}}</title>
+<style>
+  :root { --ink: #1E293B; --muted: #64748B; --line: #CBD5E1; --soft: #F1F5F9; --aside: #FFF7DC; --accent: #2563EB; }
+  body { margin: 0 auto; max-width: 720px; padding: 24px 16px 96px; font: 19px/1.65 system-ui, sans-serif; color: var(--ink); }
+  h1 { font-size: 28px; line-height: 1.2; margin: 0 0 8px; }
+  .meta { color: var(--muted); margin: 0 0 4px; }
+  nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0 32px; }
+  nav a { display: inline-block; min-width: 34px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 999px; text-align: center; text-decoration: none; color: var(--ink); font-size: 14px; }
+  nav a.hidden { color: var(--muted); border-style: dashed; }
+  section { border-top: 1px solid var(--line); padding: 20px 0 8px; }
+  section.hidden { background: var(--soft); border-radius: 8px; padding: 20px 12px 8px; }
+  .hd { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .n { font-size: 13px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+  .min { font-size: 13px; color: var(--accent); }
+  .section-label { font-size: 13px; color: var(--muted); }
+  h2 { font-size: 21px; line-height: 1.25; margin: 0; }
+  p { margin: 0 0 14px; }
+  p.aside { background: var(--aside); border-radius: 6px; padding: 8px 12px; }
+  a.top { position: fixed; right: 16px; bottom: 16px; padding: 8px 12px; border-radius: 999px; background: var(--ink); color: #fff; text-decoration: none; font-size: 14px; }
+</style>
+</head>
+<body id="top">
+<h1>{{title}}</h1>
+<p class="meta">Speaker notes, generated once from the same source as the PPTX notes pane.</p>
+<p class="meta">Total spoken time: {{total_minutes}} min</p>
+<nav>
+{{nav}}
+</nav>
+{{sections}}
+<a class="top" href="#top">Top</a>
+</body>
+</html>

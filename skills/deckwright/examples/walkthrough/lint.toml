@@ -1,0 +1,28 @@
+# Rules for examples/walkthrough. Eight checks; the gate asserts all eight run.
+
+[typos]
+needles = ["ASSESSEMENT", "recieve", "seperate"]
+
+[codes]
+patterns = ['\bD[123]-\d{2}\b', '\bDA-\d{2}\b']
+
+[forbidden]
+tokens = ["Acme Client", "Client Bank"]
+
+[required]
+strings = ["(C) RELAY - CONFIDENTIAL"]
+exempt = [1]
+
+[kickers]
+pattern = '\b0[1-9]\. [A-ZÁÉÍÓÚÜÑ][A-ZÁÉÍÓÚÜÑ .&]{2,60}'
+allowed = ["01. THE LOOP"]
+exempt = [1]
+
+[notes_only]
+strings = ["If asked"]
+
+[exact]
+spec = "spec.md"
+
+[assets]
+brand = "relay"

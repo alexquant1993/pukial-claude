@@ -1,0 +1,45 @@
+<!doctype html><html><head><meta charset="utf-8"><title>deckwright icon sheet</title><style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:#fff}
+  /* Cells are authored at 160px and the icons are placed at 13-18px, a nine
+     to twelve times oversample. Authoring the sheet large is more robust
+     than relying on a 2x device scale factor, and the cropper derives cell
+     size from the screenshot itself, so either works. */
+  #sheet{position:relative;width:640px;height:160px}
+  .cell{position:absolute;width:160px;height:160px;display:grid;place-items:center;background:#fff}
+  svg{width:160px;height:160px;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+</style></head><body>
+<div id="sheet"></div>
+<script>
+// Lucide outline icons, ISC licence. Swap for the brand's own set.
+const ICONS = {
+  activity: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  network:  '<rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/>',
+  zap:      '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
+  search:   '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+};
+// Order MUST match SHEETS["template"] in scripts/crop_icons.py, and a brand
+// copying this file adds its own entry there and points the copy at it -
+// brands/relay/iconsheet.html and SHEETS["relay"] are the worked pair. This
+// comment is the only contract between a sheet and its cropper entry, and it
+// is load-bearing: in the one sheet of the source engagement where it was
+// dropped, the names drifted.
+const LIST = [
+  ['activity','blue','#2563EB'],
+  ['network','blue','#2563EB'],
+  ['zap','blue','#2563EB'],
+  ['search','blue','#2563EB'],
+];
+const COLS = 4;
+const sheet = document.getElementById('sheet');
+LIST.forEach((it, i) => {
+  const [name, key, stroke] = it;
+  const cell = document.createElement('div');
+  cell.className = 'cell';
+  cell.style.left = (i % COLS) * 160 + 'px';
+  cell.style.top = Math.floor(i / COLS) * 160 + 'px';
+  cell.innerHTML = '<svg viewBox="0 0 24 24" style="stroke:' + stroke + '">' + ICONS[name] + '</svg>';
+  sheet.appendChild(cell);
+});
+</script>
+</body></html>

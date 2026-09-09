@@ -1,0 +1,237 @@
+/* The Relay brand's design tokens: the HTML half. style.py is the PPTX
+   half, and the two mirror each other one to one - every palette colour,
+   every T_* size, every LS_* spacing, the tracking, the radius and rule
+   scale and the grid appear in both files under the same name, so a draft
+   authored with these tokens ports to a builder without a lookup table.
+
+   Derived from brands/relay_design_system/tokens/*.css. Two conversions run
+   through every number, and style.py's docstring is the long version:
+
+     geometry  the Relay slide kit is 1920x1080 and this canvas is 1280x720,
+               so lengths are scaled by 2/3 - the kit's 120px padding is
+               --left: 80px here. Rules are NOT scaled: a hairline at 2/3 is
+               a fuzzy 1.33px, so 1 / 1.5 / 2 / 3 come from the kit's
+               tokens/spacing.css unchanged.
+     type      each --t-* is a px from Relay's 1.26-ratio scale at this
+               canvas; the builder re-derives points at roughly px * 0.76
+               and floors them. --t-title 39px is T_TITLE 29.6pt,
+               --t-body 16px is T_BODY 12.2pt.
+
+   Drafts reach this file through a relative @import in
+   brands/relay/slide.css, which is what makes the serving-root trap in
+   references/02-html-stage.md real: an @import resolves against the
+   importing stylesheet's own URL, so a server rooted at the slide
+   directory normalises ../../ back past the root, 404s, and leaves every
+   custom property below undefined. The page then renders unstyled, with no
+   error anywhere.
+
+   Strings the builder writes on every content slide (style.py):
+     TAGLINE   = "Technology that moves the business."
+     WORDMARK  = "Relay"
+     COPYRIGHT = "(C) RELAY - CONFIDENTIAL"
+   A draft types them in; nothing in CSS supplies text. */
+
+/* The faces the builder measures against, so the draft wraps where the
+   builder will. Paths are relative to this file. Relay names Space Grotesk
+   (display), Public Sans (body) and JetBrains Mono (labels) and ships no
+   binaries; all three are OFL, so scripts/fetch_fonts.py downloads them into
+   fonts/ against the hashes pinned in fonts.toml rather than substituting a
+   face the repository already had. fonts/README.md is the account. */
+@font-face {
+  font-family: "Space Grotesk";
+  font-weight: 400;
+  src: url("fonts/SpaceGrotesk-Regular.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Space Grotesk";
+  font-weight: 700;
+  src: url("fonts/SpaceGrotesk-Bold.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Public Sans";
+  font-weight: 400;
+  src: url("fonts/PublicSans-Regular.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Public Sans";
+  font-weight: 700;
+  src: url("fonts/PublicSans-Bold.ttf") format("truetype");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-weight: 400;
+  src: url("fonts/JetBrainsMono-Regular.ttf") format("truetype");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-weight: 700;
+  src: url("fonts/JetBrainsMono-Bold.ttf") format("truetype");
+}
+
+:root {
+  /* --- palette, Relay's own names (style.py: INK_1000 .. STATE_INFO_BG) -- */
+  /* Ink. Black is #0A0A0A, never #000. */
+  --ink-1000: #0A0A0A;
+  --ink-900: #141414;
+  --ink-800: #1F1F1F;
+  --ink-700: #2E2E2E;
+  --ink-600: #4A4A4A;
+  --ink-500: #6B6B6B;
+  --ink-400: #8F8F8F;
+  --ink-300: #B8B8B8;
+  --ink-200: #D8D8D8;
+  --ink-100: #EBEBEB;
+  --ink-050: #F5F5F4;
+  --paper: #FFFFFF;
+  /* Signal: one aggressive colour, one orange element per view. */
+  --signal-100: #FFE7DB;
+  --signal-500: #FF4F00;
+  --signal-600: #E04600;
+  /* Volt: diagrams and data artifacts only. Never UI chrome. */
+  --volt-100: #F2FCCE;
+  --volt-500: #C6F51E;
+  /* Status: muted and semantic, each with its tinted ground. */
+  --state-positive: #00873C;
+  --state-positive-bg: #E4F4EA;
+  --state-warning: #B36A00;
+  --state-warning-bg: #FBEEDB;
+  --state-negative: #C81E1E;
+  --state-negative-bg: #FBE7E7;
+  --state-info: #0F5EFF;
+  --state-info-bg: #E5EDFF;
+
+  /* --- the shared role names (style.py: BLUE .. PANEL) ------------------
+     templates/components.css reads these, never the values, so a draft
+     written with the shared vocabulary resolves against Relay's tokens. */
+  --blue: var(--signal-500);        /* the accent role, orange in Relay */
+  --blue-dark: var(--signal-600);
+  --navy: var(--ink-1000);
+  --title: var(--ink-1000);
+  --grey: var(--ink-600);
+  --muted: var(--ink-500);
+  --faint: var(--ink-400);
+  --white: var(--paper);
+  --line: var(--ink-200);
+  --cell-bd: var(--ink-100);
+  --red-bg: var(--state-negative-bg);
+  --red: var(--state-negative);
+  --amb-bg: var(--state-warning-bg);
+  --amb: var(--state-warning);
+  --amb-txt: var(--state-warning);
+  --amb-leg: var(--state-warning);
+  --bg-top: var(--paper);
+  --bg-bottom: var(--paper);
+  --dark: var(--ink-1000);          /* the inverse ground, painted per slide */
+  --dark-raised: var(--ink-900);
+  --ink: var(--ink-600);
+  --panel: var(--ink-050);
+
+  /* The page ground. Flat: "No gradients. No mesh, no glow, no blurred
+     blobs." make_template.py paints BG_TOP -> BG_BOTTOM on the layout and
+     the two stops are the same colour, so it degenerates to flat white. */
+  --bg: var(--paper);
+
+  /* Channel triplets for alpha fills (deck_kit.xmlfill.alpha_fill and grad
+     take an alpha per stop; CSS needs rgba(r,g,b,a) to say the same). */
+  --blue-rgb: 255, 79, 0;
+  --blue-dark-rgb: 224, 70, 0;
+  --white-rgb: 255, 255, 255;
+  --amb-leg-rgb: 179, 106, 0;
+  --ink-1000-rgb: 10, 10, 10;
+
+  /* --- type scale (style.py: T_*) --------------------------------------
+     CSS px is the design size; the builder re-derives points at px * 0.76
+     and floors them. Every size names the px it came from. */
+  --t-tagline: 11px;      /* T_TAGLINE    8.4  all-caps micro-label */
+  --t-eyebrow: 13px;      /* T_EYEBROW    9.9  the mono kicker, +0.12em */
+  --t-title: 39px;        /* T_TITLE     29.6  --text-3xl */
+  --t-cover: 78px;        /* T_COVER     59.3  --text-6xl */
+  --t-numeral: 62px;      /* T_NUMERAL   47.1  --text-5xl, the big numeral */
+  --t-unit: 25px;         /* T_UNIT      19.0  --text-xl, the unit beside it */
+  --t-headline: 31px;     /* T_HEADLINE  23.6  --text-2xl, a statement line */
+  --t-lead: 21px;         /* T_LEAD      16.0  --text-lg */
+  --t-sub: 18px;          /* T_SUB       13.7  --text-md */
+  --t-col-head: 16px;     /* T_COL_HEAD  12.2  column headers, floor 12 pt */
+  --t-col-sub: 11px;      /* T_COL_SUB    8.4  all-caps micro-label */
+  --t-row-label: 13px;    /* T_ROW_LABEL  9.9 */
+  --t-wordmark: 16px;     /* T_WORDMARK  12.2  "Relay", -0.045em */
+  --t-pill: 13px;         /* T_PILL       9.9 */
+  --t-pill-sub: 13px;     /* T_PILL_SUB   9.9  a caption, so the caption floor */
+  --t-body: 16px;         /* T_BODY      12.2  body floor is 11 pt */
+  --t-caption: 14px;      /* T_CAPTION   10.6  caption floor is 9.5 pt */
+  --t-card-desc: 14px;    /* T_CARD_DESC 10.6 */
+  --t-loop: 14px;         /* T_LOOP      10.6  the transversal note line */
+  --t-legend: 13px;       /* T_LEGEND     9.9 */
+  --t-foot: 11px;         /* T_FOOT       8.4  all-caps micro-label */
+  --t-meta: 12px;         /* T_META       9.1  copyright, page numbers */
+
+  /* --- tracking (style.py: TRACK_*) ------------------------------------
+     em, applied with letter-spacing here and written as a:rPr/@spc there.
+     "Display is always tightened, mono and micro-caps are opened up." */
+  --track-display: -0.035em;   /* TRACK_DISPLAY */
+  --track-tight: -0.015em;     /* TRACK_TIGHT */
+  --track-wordmark: -0.045em;  /* TRACK_WORDMARK */
+  --track-mono: 0.12em;        /* TRACK_MONO */
+  --track-wide: 0.04em;        /* TRACK_WIDE */
+
+  /* --- line spacing (style.py: LS_*) ------------------------------------ */
+  --ls-flat: 0.94;        /* LS_FLAT   the cover line and the numerals */
+  --ls-label: 1.0;        /* LS_LABEL  single-line labels */
+  --ls-title: 1.02;       /* LS_TITLE  titles */
+  --ls-card: 1.16;        /* LS_CARD   card titles and short card copy */
+  --ls-body: 1.34;        /* LS_BODY   body prose */
+  --ls-prose: 1.5;        /* LS_PROSE  prose with room around it */
+
+  /* --- radius and rules (style.py: RAD_*, HAIR, RULE_*, LW_*) -----------
+     "Sharp by default. Radius is a rounding of last resort, never a style." */
+  --rad-surface: 0px;     /* RAD_SURFACE */
+  --rad-control: 2px;     /* RAD_CONTROL */
+  --hair: 1px;            /* HAIR */
+  --rule-medium: 1.5px;   /* RULE_MEDIUM */
+  --rule-strong: 2px;     /* RULE_STRONG */
+  --rule-heavy: 3px;      /* RULE_HEAVY, a section opener */
+
+  /* --- spacing rhythm (style.py: SPACE_*) ------------------------------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* --- grid (style.py: L, R, W, ROW_LABEL_W, COL_GAP, GRID_HAIR) -------- */
+  --left: 80px;           /* L  the content band starts here */
+  --right: 1200px;        /* R  and ends here */
+  --width: 1120px;        /* W = R - L */
+  --row-label-w: 176px;   /* ROW_LABEL_W  the matrix row-label gutter */
+  --col-gap: 16px;        /* COL_GAP */
+  --grid-hair: 1px;       /* GRID_HAIR  the butt-joined card grid's gap */
+
+  /* --- the slide's vertical furniture (style.py: RULE_Y .. FOOT_H) ------ */
+  --rule-y: 56px;         /* RULE_Y */
+  --kicker-y: 70px;       /* KICKER_Y */
+  --title-y: 92px;        /* TITLE_Y */
+  --sub-y: 140px;         /* SUB_Y */
+  --content-top: 182px;   /* CONTENT_TOP */
+  --content-bottom: 650px;/* CONTENT_BOTTOM */
+  --foot-y: 672px;        /* FOOT_Y */
+  --foot-h: 16px;         /* FOOT_H */
+  --title-avail: 1120px;  /* TITLE_AVAIL */
+  --sub-avail: 940px;     /* SUB_AVAIL, one line for every sub in the deck */
+
+  /* --- page-marker geometry (style.py: PAGE_X, PAGE_Y, PAGE_W, PAGE_H) -- */
+  --page-x: 1140px;
+  --page-y: 672px;
+  --page-w: 60px;
+  --page-h: 16px;
+
+  /* --- faces (brand.py: sans, display, mono) ---------------------------
+     One per type role, and the builder writes the same three names into the
+     PPTX (style.py: SANS, DISPLAY, MONO). Relay declares no serif role, so
+     there is no --serif here and brand.py's serif is None. */
+  --sans: "Public Sans", Arial, sans-serif;
+  --display: "Space Grotesk", "Public Sans", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}

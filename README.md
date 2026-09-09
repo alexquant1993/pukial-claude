@@ -11,6 +11,7 @@ This repo is **both a marketplace and a single plugin** (`pukial-flutter`).
 |---|---|
 | `ship-check` | Post-development architecture gate for Pukial Flutter apps: deterministic verification + TIER-1 grep sweep, parallel fresh-eyes review (architecture + bugs), author triage, opt-in fix loop, and a recommend-only simplifier pass. |
 | `new-app` | Scaffolds a new `com.pukial` Flutter app from the `flutter-pukial-starter` (rename, ids, keys). |
+| `deckwright` | Turns an idea into a slide deck: a binding spec, HTML drafts drawn on a design system (the bundled `relay` brand or your own), then a native editable PowerPoint file or a printable HTML deck, with a QA loop that proves the file opens and says what the spec said. Ask for a deck to invoke it; its intake asks about the design system, the HTML draft, notes and the output. Python with python-pptx and Pillow, a browser the capture script can drive; Windows with PowerPoint only for the PPTX integrity and export steps. See `skills/deckwright/README.md`. |
 
 This plugin is **skills-only**. The `dart-format` PostToolUse hook is intentionally *not* bundled —
 it is FVM-pinned, repo-bound infrastructure, so it lives in the `flutter-pukial-starter` (and is

@@ -1,0 +1,86 @@
+# Every non-text file in this brand, with its hash and where it came from.
+# `scripts/lint_deck.py --rules <deck>/lint.toml` fails on any file here that
+# is missing or whose hash moved, and on any file in the package that is not
+# listed. Regenerate the blocks with:
+#   python scripts/lint_deck.py manifest --brand relay
+# and fill the provenance in by hand - the generator never invents one.
+#
+# The six faces are ALSO declared in `fonts.toml`, which is a different
+# question: this file says where a committed binary came from, that one says
+# what to fetch and against which hash. `scripts/fetch_fonts.py` writes the
+# file; a human writes the block below. The two hashes must agree, and the
+# lint fails here if the file on disk stops matching.
+#
+# Relay's own readme flags three substitutions (fonts, logo, icons). Two of
+# them are still substitutions here; the fonts are not, because all three of
+# Relay's named families are OFL and are now fetched.
+
+[[asset]]
+path = "fonts/JetBrainsMono-Bold.ttf"
+sha256 = "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb"
+provenance = "JetBrains Mono Bold, SIL Open Font License 1.1, fetched by scripts/fetch_fonts.py from JetBrains/JetBrainsMono v2.304; Relay's --font-mono, licence in fonts/JetBrainsMono-OFL.txt"
+
+[[asset]]
+path = "fonts/JetBrainsMono-Regular.ttf"
+sha256 = "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f"
+provenance = "JetBrains Mono Regular, SIL Open Font License 1.1, fetched by scripts/fetch_fonts.py from JetBrains/JetBrainsMono v2.304; Relay's --font-mono, licence in fonts/JetBrainsMono-OFL.txt"
+
+[[asset]]
+path = "fonts/PublicSans-Bold.ttf"
+sha256 = "bddd96a0bcd49b292524b4beff57d770ce97482fb3f84b788959422e06b863a6"
+provenance = "Public Sans Bold, SIL Open Font License 1.1, fetched by scripts/fetch_fonts.py from uswds/public-sans v2.001; Relay's --font-body, licence in fonts/PublicSans-LICENSE.md"
+
+[[asset]]
+path = "fonts/PublicSans-Regular.ttf"
+sha256 = "b577e9bc9887284e90aae5ad0699689ce36b5cd96207efbec68f77f8aed88379"
+provenance = "Public Sans Regular, SIL Open Font License 1.1, fetched by scripts/fetch_fonts.py from uswds/public-sans v2.001; Relay's --font-body, licence in fonts/PublicSans-LICENSE.md"
+
+[[asset]]
+path = "fonts/SpaceGrotesk-Bold.ttf"
+sha256 = "7209bbb75fc0f5c546a5f5773b0db74ffc6abf04c2148c1105cace5765a96bdb"
+provenance = "Space Grotesk Bold, SIL Open Font License 1.1, fetched by scripts/fetch_fonts.py from floriankarsten/space-grotesk 2.0.0; Relay's --font-display, licence in fonts/SpaceGrotesk-OFL.txt"
+
+[[asset]]
+path = "fonts/SpaceGrotesk-Regular.ttf"
+sha256 = "5ede28c4425f3fe4830c8f4754b39e9a87a93d0c3baa5e0a9924532aaa8a98bd"
+provenance = "Space Grotesk Regular, SIL Open Font License 1.1, fetched by scripts/fetch_fonts.py from floriankarsten/space-grotesk 2.0.0; Relay's --font-display, licence in fonts/SpaceGrotesk-OFL.txt"
+
+[[asset]]
+path = "icons/ic_activity_ink.png"
+sha256 = "f11e115415f9ba9a89d9eff82626d7ac872b50259ab318d30f5e0e75ec14116a"
+provenance = "cropped by scripts/crop_icons.py --sheet relay from brands/relay/iconsheet.html; Lucide outline icon, ISC licence, path copied from brands/relay_design_system/assets/icons/activity.svg"
+
+[[asset]]
+path = "icons/ic_arrowdown_ink.png"
+sha256 = "20832f3eb98d0609d98da3f7c4cde80927d5bc48ac73777e46c8e1f2786508c5"
+provenance = "cropped by scripts/crop_icons.py --sheet relay from brands/relay/iconsheet.html; Lucide outline icon, ISC licence, path copied from brands/relay_design_system/assets/icons/arrow-down.svg"
+
+[[asset]]
+path = "icons/ic_arrowup_ink.png"
+sha256 = "6076fea6bb476c979a349c0b80d0a2a2f8a5d4ff7a27c00e69b6c91515c3f185"
+provenance = "cropped by scripts/crop_icons.py --sheet relay from brands/relay/iconsheet.html; Lucide outline icon, ISC licence, path copied from brands/relay_design_system/assets/icons/arrow-up-right.svg"
+
+[[asset]]
+path = "icons/ic_terminal_ink.png"
+sha256 = "3c57662da447aaa1df69f1abd983bd699fa423d941ded62f321c451a8b2e8954"
+provenance = "cropped by scripts/crop_icons.py --sheet relay from brands/relay/iconsheet.html; Lucide outline icon, ISC licence, path copied from brands/relay_design_system/assets/icons/terminal.svg"
+
+[[asset]]
+path = "icons/ic_users_ink.png"
+sha256 = "c11b706a097db472158b7634bbf8d1c7ef9a54ef960ca4fd334ad63e8e23abf7"
+provenance = "cropped by scripts/crop_icons.py --sheet relay from brands/relay/iconsheet.html; Lucide outline icon, ISC licence, path copied from brands/relay_design_system/assets/icons/users.svg"
+
+[[asset]]
+path = "icons/ic_zap_ink.png"
+sha256 = "ce6a5b21e67af1ee934a2de19b0909c626783fb93ce4b73ae3c3883e69b96854"
+provenance = "cropped by scripts/crop_icons.py --sheet relay from brands/relay/iconsheet.html; Lucide outline icon, ISC licence, path copied from brands/relay_design_system/assets/icons/zap.svg"
+
+[[asset]]
+path = "logo_inverse.png"
+sha256 = "71a16fcaadd0ff0d2e76114a42f1c1f210fb0edd0c75fcea55af94ae09179ea5"
+provenance = "PLACEHOLDER wordmark drawn by scripts/make_placeholder_logos.py in Space Grotesk Bold, in the paper ink, for the dark cover; Relay supplied no mark and drew none - brands/relay_design_system/guidelines/brand-wordmark.html says REPLACE WITH THE REAL MARK WHEN SUPPLIED"
+
+[[asset]]
+path = "logo_primary.png"
+sha256 = "a34a1fd17f022765d5b62e15138047f9ffae3c35862c79fe07bfe4363569a376"
+provenance = "PLACEHOLDER wordmark drawn by scripts/make_placeholder_logos.py in Space Grotesk Bold, in ink #0A0A0A; Relay supplied no mark and drew none - brands/relay_design_system/guidelines/brand-wordmark.html says REPLACE WITH THE REAL MARK WHEN SUPPLIED"

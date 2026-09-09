@@ -1,0 +1,33 @@
+{
+  "skill_name": "deckwright",
+  "date": "2026-09-10",
+  "eval_set": "evals/trigger-eval.json",
+  "method": "blinded A/B judgement by two independent fresh agents, one per description. Each was given the skill's name and one description and nothing else - no SKILL.md body, no repository - and asked, for each of the twenty queries, whether that entry alone would make it open the skill. This substitutes for skill-creator's scripts/run_eval.py, which is not trustworthy on this machine: see harness_note.",
+  "harness_note": "skill-creator's scripts/run_eval.py runs, but its positive control fails here. It writes a slash-command file, runs `claude -p`, and counts a trigger only if the FIRST tool call is a Skill or Read naming that command; anything else is read as 'did not trigger'. This machine has a SessionStart hook that injects the superpowers doctrine into every nested session, so the nested agent opens a superpowers skill first and every query scores 0. Measured: the query 'Use the deckwright skill to build a five-slide deck ... output pptx' - which cannot be a false negative about a description - scored 0/1. Numbers from that harness would have been noise, so they are not reported.",
+  "configurations": {
+    "before": {
+      "description": "Idea -> binding spec -> HTML draft -> native, editable PPTX, integrated into a deck a human keeps editing by hand, with a QA loop that proves the file opens and says what the spec said. Use when building consulting slides natively with python-pptx, retexting an approved deck without breaking its formatting, transplanting generated slides into someone else's file, or checking a deck before it goes to a client.",
+      "should_trigger_correct": 7,
+      "should_trigger_total": 10,
+      "should_not_trigger_correct": 10,
+      "should_not_trigger_total": 10,
+      "score": "17/20",
+      "missed": [
+        {"n": 1, "query_summary": "five slides off the user's own design system, no .pptx wanted, print to PDF", "judge_reason": "no pptx needed, just HTML/PDF slides for screen"},
+        {"n": 5, "query_summary": "'ok i need to make some slides for monday. nothing fancy'", "judge_reason": "vague slide request, no pptx or QA need"},
+        {"n": 7, "query_summary": "adopt a client brand kit (tokens/ CSS, TTFs, wordmark) as the house style", "judge_reason": "generic brand kit setup, no deck/slide mentioned"}
+      ]
+    },
+    "after": {
+      "description": "Turn an idea into a slide deck: a binding spec, HTML drafts drawn on a design system, then a native, editable PowerPoint file - or ship the HTML deck itself and print it to PDF - with a QA loop that proves the deliverable says what the spec said. Use this skill whenever someone wants a deck, slides, a presentation, a PPTX or an HTML deck built, rebuilt, restyled or checked: building slides on a company or client design system or brand, drafting a slide in HTML before any Python, retexting an approved deck without breaking its formatting, transplanting generated slides into a file a human keeps editing by hand, adding speaker notes or a teleprompter, diagnosing a deck PowerPoint wants to repair, or running lint, visual and file-integrity QA before it goes to a client. Use it even when the request is only \"make me some slides\" and names no tool or format. Not for merely reading a deck somebody sent: summarising or extracting from a .pptx needs no skill.",
+      "should_trigger_correct": 10,
+      "should_trigger_total": 10,
+      "should_not_trigger_correct": 10,
+      "should_not_trigger_total": 10,
+      "score": "20/20",
+      "missed": []
+    }
+  },
+  "reading": "The three the old description missed are the three things it never said: that the HTML deck is a deliverable in its own right (2026-09-10 ruling), that a bare 'make me some slides' is in scope, and that adopting somebody's design system as a brand package is a route this skill owns. None of the ten near-miss negatives moved - the added recall cost no precision, and query 11 (summarise a deck someone sent) was refused by the new description citing its own exclusion clause.",
+  "caveat": "Two judges, one sample each, no repeats. This measures whether the description SAYS the thing, not the variance of a real router. Treat 17 -> 20 as a directional result, not a benchmark."
+}

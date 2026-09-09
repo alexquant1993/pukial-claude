@@ -1,0 +1,41 @@
+[
+  {"query": "We keep our design system at C:/work/design_system - README.md, a colors_and_type.css, an assets/ folder with the logos. I need five slides out of it for Thursday's steering committee on where our fraud-ops automation lands over the next two years. Nobody needs a .pptx, they'll read it off the screen and I'll print it to PDF afterwards.", "should_trigger": true},
+
+  {"query": "I don't have a design system of my own, just make it look decent. Four slides on why we should consolidate our three ticketing tools into one, for my director. It has to come out as a PowerPoint file she can edit the wording in herself.", "should_trigger": true},
+
+  {"query": "board-v7.pptx needs two numbers changed before Friday - slide 14 should say EUR 4.2m where it says EUR 3.8m, and slide 23's second bullet needs rewording. The design is signed off so don't touch anything else, and the middle of that bullet is bold and has to stay bold.", "should_trigger": true},
+
+  {"query": "Before I send client-final.pptx tomorrow, can you check it over? I want to know it'll actually open on their machine, that none of our internal ticket codes are still on a slide, and that the footer isn't drifting between slides.", "should_trigger": true},
+
+  {"query": "ok i need to make some slides for monday. topic is our Q3 incident review. nothing fancy", "should_trigger": true},
+
+  {"query": "PowerPoint says 'needs repair' every time we open merged-deck.pptx now. It was fine last week, before I pulled four slides across from the vendor's file. Can you work out what I broke?", "should_trigger": true},
+
+  {"query": "Our client sent over their brand kit - it's a zip with a tokens/ directory of CSS, three TTFs and a wordmark SVG. I want to set it up so everything I build from now on comes out in their colours and type instead of the generic one.", "should_trigger": true},
+
+  {"query": "I've got the six slides from the strategy deck that I want to lift into the CEO's own file at positions 4 through 9, keeping their charts. Her file is the one that goes to the board so it can't be regenerated from scratch.", "should_trigger": true},
+
+  {"query": "can you add speaker notes to the readiness deck? i've got 16 minutes and i keep losing my place on the matrix slide. would be great to have them on a page i can scroll on my phone too", "should_trigger": true},
+
+  {"query": "the presentation needs to be in our corporate template. we have a reference .pptx from marketing with the right colours. how do i get my python-generated slides to actually look like it", "should_trigger": true},
+
+  {"query": "can you read Q3-board-deck.pptx in my downloads and tell me what the three main asks are? just a summary, I'm not changing anything", "should_trigger": false},
+
+  {"query": "I've got about 40 pptx files in decks/2025/ and I need the text of every table in them pulled into one CSV so I can pivot on it. Column headers are inconsistent across files, sadly.", "should_trigger": false},
+
+  {"query": "our marketing site needs a new pricing page - three tiers side by side, responsive, matching the design tokens in tokens.css. next.js app router, tailwind v4", "should_trigger": false},
+
+  {"query": "help me write the abstract and the 20 minute talk outline for my KubeCon submission on incremental migration off a monolith. no visuals needed yet, just the argument", "should_trigger": false},
+
+  {"query": "I need a stacked bar chart of monthly incident counts by severity from incidents.csv, in a dashboard I can leave running on the wall screen", "should_trigger": false},
+
+  {"query": "set up a proper design system for the react app - CSS variables for the palette, a type scale, dark mode that actually works, shadcn components on top", "should_trigger": false},
+
+  {"query": "convert these 30 pptx files to PDF and stick them in one folder named by date. there's a libreoffice CLI thing that does it right?", "should_trigger": false},
+
+  {"query": "python-pptx is throwing PackageNotFoundError on a file that opens fine in PowerPoint. it's a .ppt not a .pptx isn't it - what's the cleanest way to detect that before I try to open it", "should_trigger": false},
+
+  {"query": "the slide deck of our onboarding docs lives in notion. can you pull the six pages under 'Getting started' into markdown files in docs/ so they're in the repo", "should_trigger": false},
+
+  {"query": "review the deck/ package in this repo - it's our card-game engine, deck.py, shuffle.py, dealer.py. mainly worried the shuffle isn't uniform", "should_trigger": false}
+]

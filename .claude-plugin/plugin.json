@@ -1,7 +1,7 @@
 {
   "name": "pukial-flutter",
   "version": "0.1.0",
-  "description": "Pukial Flutter toolkit for Claude Code: the ship-check architecture gate (review -> triage -> fix -> recommend) and the new-app scaffolder for com.pukial Flutter apps. Pairs with the flutter-pukial-starter, which provides the per-repo Makefile, env, and settings the skills rely on.",
+  "description": "Pukial Flutter toolkit for Claude Code: the ship-check architecture gate (review -> triage -> fix -> recommend) and the new-app scaffolder for com.pukial Flutter apps. Pairs with the flutter-pukial-starter, which provides the per-repo Makefile, env, and settings the skills rely on. Also carries deckwright: idea -> binding spec -> HTML drafts on a design system -> native editable PPTX or printable HTML deck, with a QA loop.",
   "author": {
     "name": "Anderson Arroyo",
     "email": "a.arroyo@pucp.pe"
@@ -12,7 +12,11 @@
     "architecture",
     "code-review",
     "ship-check",
-    "scaffolding"
+    "scaffolding",
+    "slides",
+    "pptx",
+    "html-deck",
+    "design-system"
   ],
   "skills": "./skills/"
 }
