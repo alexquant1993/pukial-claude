@@ -22,7 +22,8 @@ See [prompt-templates.md](./prompt-templates.md) for the prompt shape.
 ONE variant at a time (per `feedback_aso_thorough_on_drift` memory):
 
 ```bash
-SKILL="$HOME/.claude/skills/aso-appstore-screenshots"
+# ASO_SKILL_DIR is the installed directory containing this skill's SKILL.md.
+SKILL="${ASO_SKILL_DIR:?Set ASO_SKILL_DIR to the installed skill directory}"
 SLOT="$PROJECT/screenshots/es-ios/01-regala"
 
 python3 "$SKILL/scripts/enhance_card.py" \
@@ -101,12 +102,12 @@ Per slot:
 | Tag text wraps or overflows the card edge | Font size too big, or tag text too long for `padding_h` | Reduce `font_size`, or shorten the text |
 | API returns `400` "below minimum pixel budget" | Computed photo dims < 1024 short side, scale-up logic broken | Verify the breakout zone is reasonable (>200×200 px) and that `_api_size_for_photo` is rounding correctly |
 
-## AskUserQuestion gate (per card)
+## User approval gate (per card)
 
-After each fire, show the user `card.png` and `final.png` via `Read`. Then:
+After each fire, show the user `card.png` and `final.png` with the host's available image viewer or preview mechanism. Then:
 
 ```python
-AskUserQuestion(
+USER_INPUT_GATE(
     questions=[{
         "question": "Slot N hero card: lock as winner, refire scene, or change framing?",
         "header": "Slot N card",
@@ -156,7 +157,7 @@ Update `aso_generated_screenshots.md` per Phase 7 schema (see
 
 ## Gate
 
-User locks every hero card via AskUserQuestion. After all hero slots
+User locks every hero card via the user-input gate. After all hero slots
 approved, proceed to Phase 8 (replication) if multi-locale/platform;
 otherwise Phase 9 (showcase).
 

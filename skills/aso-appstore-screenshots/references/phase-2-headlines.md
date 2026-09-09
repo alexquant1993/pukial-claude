@@ -45,14 +45,14 @@ Here are the proposed headlines:
 
 ## Output
 
-Write `aso_benefits.md` per `memory-schema.md`. Add a one-line entry to `MEMORY.md`.
+Write `.aso/aso_benefits.md` per `memory-schema.md`. Add a one-line entry to `.aso/MEMORY.md`.
 
-## AskUserQuestion gate (per slot)
+## User approval gate (per slot)
 
 For each of the 5 slots' verb + descriptor pairs:
 
 ```python
-AskUserQuestion(questions=[{
+USER_INPUT_GATE(questions=[{
     "question": "Slot N headline '{verb} / {desc}': approve, revise wording, or pick a different framework slot?",
     "header": "Slot N headline",
     "multiSelect": False,

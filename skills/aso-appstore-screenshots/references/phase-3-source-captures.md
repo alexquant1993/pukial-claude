@@ -52,14 +52,14 @@ For any Retake, give specific guidance:
 
 ## Output
 
-Write `aso_screenshot_pairings.md` per `memory-schema.md`. Include the rating + assessment for every capture (even Retakes — the user may come back to fix them).
+Write `.aso/aso_screenshot_pairings.md` per `memory-schema.md`. Include the rating + assessment for every capture (even Retakes — the user may come back to fix them).
 
-## AskUserQuestion gate (per slot pairing)
+## User approval gate (per slot pairing)
 
 For each of the 5 slots' paired source capture:
 
 ```python
-AskUserQuestion(questions=[{
+USER_INPUT_GATE(questions=[{
     "question": "Slot N source img0N.png: right fit for this headline, swap to a different file, or re-shoot?",
     "header": "Slot N source",
     "multiSelect": False,

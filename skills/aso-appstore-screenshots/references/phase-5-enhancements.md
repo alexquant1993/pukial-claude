@@ -74,7 +74,7 @@ Coordinates are easy to get wrong by 100+ px when eyeballing a 1290×2796 source
 python3 "$SKILL_DIR/scripts/preview_crop.py" \
   screenshots/source/ios/es/imgNN.png "x,y,w,h" /tmp/preview.png "slotN label"
 
-# Read /tmp/preview.png to confirm the magenta box tightly bounds the intended UI element.
+# Inspect `/tmp/preview.png` with the host's available image viewer to confirm the magenta box tightly bounds the intended UI element.
 ```
 
 For hero mode the zone lives in canvas coordinates (not source coordinates), so verify *after* you scaffold instead — see [Phase 6 → Visualizing the breakout zone](./phase-6-scaffold.md).
@@ -83,7 +83,7 @@ If the box is misaligned, fix the rect in this worksheet before continuing.
 
 ### Step 4 — Write the worksheet
 
-Save to `aso_enhancements.md` in memory. Per slot, two parts:
+Save to `.aso/aso_enhancements.md`. Per slot, two parts:
 
 **1. Plain-English brief** (for human review).
 
@@ -149,7 +149,7 @@ If any slot fails validation, fix it before Step 6.
 
 ### Step 6 — Present to user, lock
 
-Show the briefs as a vertical list (not a table — the prose matters). Highlight the per-slot mode and ask: **"Approve as drafted, or edit which slots?"** When user approves, save `aso_enhancements.md` and link from `MEMORY.md`.
+Show the briefs as a vertical list (not a table — the prose matters). Highlight the per-slot mode and ask: **"Approve as drafted, or edit which slots?"** When user approves, save `.aso/aso_enhancements.md` and link from `.aso/MEMORY.md`.
 
 ## Skipping the analysis
 
@@ -165,18 +165,18 @@ If the user says "just decide, you pick" — do the analysis silently, write the
 
 ## Output
 
-Memory file: `aso_enhancements.md` (briefs + derived blocks).
+Memory file: `.aso/aso_enhancements.md` (briefs + derived blocks).
 
 ## Gate
 
 User has signed off on the per-slot briefs. Phase 6 (scaffold) and Phase 7 (AI enhancement) consume the derived blocks directly.
 
-## AskUserQuestion gates (per slot)
+## User approval gates (per slot)
 
 ### Step 1 — panel_mode per slot
 
 ```python
-AskUserQuestion(questions=[{
+USER_INPUT_GATE(questions=[{
     "question": "Slot N panel_mode: hero (AI paints a card), literal (Pillow lifts a UI panel), or clean (no breakout)?",
     "header": "Slot N mode",
     "multiSelect": False,
@@ -193,7 +193,7 @@ AskUserQuestion(questions=[{
 After the user authors the free-text `creative_direction` string:
 
 ```python
-AskUserQuestion(questions=[{
+USER_INPUT_GATE(questions=[{
     "question": "Lock creative_direction for slot N: '{text}' ?",
     "header": "Creative direction",
     "multiSelect": False,

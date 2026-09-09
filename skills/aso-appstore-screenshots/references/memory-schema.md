@@ -1,21 +1,21 @@
 # Memory Schema
 
-The skill writes one memory file per completed phase to
-`~/.claude/projects/<project-id>/memory/`.
-Each file uses the standard frontmatter format from Claude's auto-memory system.
+The skill writes one memory file per completed phase to the project-local `.aso/` directory.
+This keeps progress portable across agents, models, sessions, and hosts. Each file uses the
+frontmatter format shown below; the metadata is intentionally host-neutral.
 
-After saving, also add a one-line entry to `MEMORY.md` (the index).
+After saving, also add a one-line entry to `.aso/MEMORY.md` (the index).
 
 ## Files
 
 | File | Phase | Stable across sessions? |
 |---|---|---|
-| `aso_app_context.md` | 1 | yes |
-| `aso_benefits.md` | 2 | yes |
-| `aso_screenshot_pairings.md` | 3 | yes |
-| `aso_visual_direction.md` | 4 | yes |
-| `aso_enhancements.md` | 5 | yes |
-| `aso_generated_screenshots.md` | 7-8 | grows over time |
+| `.aso/aso_app_context.md` | 1 | yes |
+| `.aso/aso_benefits.md` | 2 | yes |
+| `.aso/aso_screenshot_pairings.md` | 3 | yes |
+| `.aso/aso_visual_direction.md` | 4 | yes |
+| `.aso/aso_enhancements.md` | 5 | yes |
+| `.aso/aso_generated_screenshots.md` | 7-8 | grows over time |
 
 ## Format — `aso_app_context.md`
 

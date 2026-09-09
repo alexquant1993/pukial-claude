@@ -2,21 +2,21 @@
 
 **Goal:** Lock the visual cues that stay constant across the entire deck:
 device profile, frame asset, background style + colors, fonts, text color.
-Persist to `aso_visual_direction.md`.
+Persist to `.aso/aso_visual_direction.md`.
 
-**Inputs:** `aso_app_context.md` (brand cues, vibe), `aso_benefits.md` (the
+**Inputs:** `.aso/aso_app_context.md` (brand cues, vibe), `.aso/aso_benefits.md` (the
 headlines whose typography we're choosing).
 
-## Procedure — driven by sequential `AskUserQuestion` calls
+## Procedure — driven by sequential user-input gates
 
 The skill walks the user through binding decisions one at a time. Each
-decision is an `AskUserQuestion` call. Free-text input is reserved for hex
+decision is a user-input gate. Free-text input is reserved for hex
 colors and asset paths.
 
 ### Decision 1 — Device profile
 
 ```python
-AskUserQuestion(questions=[{
+USER_INPUT_GATE(questions=[{
     "question": "Which device size profile? (Determines canvas dimensions and which frame asset is used.)",
     "header": "Device",
     "multiSelect": False,
@@ -32,7 +32,7 @@ AskUserQuestion(questions=[{
 ### Decision 2 — Frame asset source
 
 ```python
-AskUserQuestion(questions=[{
+USER_INPUT_GATE(questions=[{
     "question": "Use the skill's bundled photoreal frame, or a project-local override?",
     "header": "Frame source",
     "multiSelect": False,
@@ -46,7 +46,7 @@ AskUserQuestion(questions=[{
 ### Decision 3 — Background style
 
 ```python
-AskUserQuestion(questions=[{
+USER_INPUT_GATE(questions=[{
     "question": "Which background style? (Same style applied to every slot in the deck.)",
     "header": "BG style",
     "multiSelect": False,
@@ -78,12 +78,12 @@ needed (per [phase-6-scaffold.md](./phase-6-scaffold.md) flag mapping):
 
 When the user is undecided between colors, render Slot 1's scaffold with
 the user's top 2-3 choices (Pillow is cheap) and show all variants — pick
-the winner via another `AskUserQuestion`.
+the winner via another user-input gate.
 
 ### Decision 5 — Fonts
 
 ```python
-AskUserQuestion(questions=[{
+USER_INPUT_GATE(questions=[{
     "question": "Verb font (line 1) — must be a heavy/black weight for ASO impact",
     "header": "Verb font",
     "multiSelect": False,
@@ -99,10 +99,10 @@ Then similarly for descriptor font (typically Bold, not Black).
 
 ### Decision 6 — Text color
 
-Free-text hex (e.g., `#BC004B`). Confirm with `AskUserQuestion`:
+Free-text hex (e.g., `#BC004B`). Confirm with a user-input gate:
 
 ```python
-AskUserQuestion(questions=[{
+USER_INPUT_GATE(questions=[{
     "question": "Lock text color {color} for all headlines in the deck?",
     "header": "Text color",
     "multiSelect": False,
@@ -113,7 +113,7 @@ AskUserQuestion(questions=[{
 }])
 ```
 
-## Persistence — `aso_visual_direction.md`
+## Persistence — `.aso/aso_visual_direction.md`
 
 Once all decisions are locked, write to memory:
 
@@ -141,5 +141,5 @@ text_color: "#BC004B"
 
 ## Gate
 
-All decisions locked via AskUserQuestion. Phase 4 memory file written.
+All decisions locked via user-input gates. Phase 4 memory file written.
 Proceed to Phase 5 (Enhancement Analysis).

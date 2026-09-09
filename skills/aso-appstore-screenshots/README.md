@@ -1,6 +1,6 @@
 # ASO App Store Screenshots
 
-A Claude Code skill that generates high-converting App Store and Google Play screenshots through a transparent 9-phase pipeline. Works for any iOS or Android app — analyzes your codebase, identifies core benefits, pairs them with your screen captures, and produces polished store-ready images.
+An agent skill that generates high-converting App Store and Google Play screenshots through a transparent 9-phase pipeline. Works for any iOS or Android app — analyzes your codebase, identifies core benefits, pairs them with your screen captures, and produces polished store-ready images.
 
 ## What it does
 
@@ -16,12 +16,12 @@ A Claude Code skill that generates high-converting App Store and Google Play scr
 
 ## Installation
 
-This is a local Claude Code skill. Drop it in `~/.claude/skills/aso-appstore-screenshots/` (where you're reading this).
+This is a local, host-neutral agent skill. Install it in the active skills directory used by your agent host. When running the bundled scripts manually, set `ASO_SKILL_DIR` to the directory containing this `SKILL.md`.
 
 ### 1. Python dependencies
 
 ```bash
-pip install -r ~/.claude/skills/aso-appstore-screenshots/requirements.txt
+pip install -r "$ASO_SKILL_DIR/requirements.txt"
 ```
 
 (That installs `Pillow` for the scaffold renderer and `openai` for the hero-card painter.)
@@ -60,7 +60,7 @@ From within your app's project directory:
 /aso-appstore-screenshots
 ```
 
-The skill walks you through each phase, gates on user approval, and resumes across conversations via Claude Code's auto-memory.
+The skill walks you through each phase, gates on explicit user approval, and resumes across conversations from the project-local `.aso/` directory. It does not depend on a host-specific auto-memory feature.
 
 ## How it works
 
@@ -98,7 +98,7 @@ Default device: **iPhone 6.9" (1320 × 2868)** — Apple's primary required size
 | File | Purpose |
 |------|---------|
 | `SKILL.md` | Skill prompt — defines the 9-phase workflow |
-| `CLAUDE.md` | Internal architecture notes (skill author's perspective) |
+| `CLAUDE.md` | Legacy authoring notes for the source plugin |
 | `references/` | Per-phase procedures, the enhancement toolkit, prompt templates, memory schema, platform dimensions, provider setup |
 | `scripts/compose.py` | Deterministic scaffold orchestrator (Pillow) |
 | `scripts/bg_renderer.py` | 8 background styles |

@@ -116,12 +116,12 @@ own flat upload folder at `screenshots/{locale}-{platform}/final/0N-<verb>.png`.
 User approves each variant. Replicas can be produced in any order — the formula
 doesn't change between them.
 
-## AskUserQuestion gate
+## User approval gate
 
 Once the primary deck (e.g., es-iOS) is locked, ask which decks to replicate:
 
 ```python
-AskUserQuestion(questions=[{
+USER_INPUT_GATE(questions=[{
     "question": "Which decks should we replicate now? Pick all that apply.",
     "header": "Replicate decks",
     "multiSelect": True,

@@ -1,37 +1,56 @@
 ---
 name: aso-appstore-screenshots
-description: Generate high-converting App Store and Google Play screenshots through a guided 9-phase pipeline: codebase analysis, benefit headlines, screenshot pairing, visual direction, per-slot conversion analysis with enhancement recommendations grounded in ASO best practices (Phiture PET model, Storemaven research, SplitMetrics A/B data), deterministic scaffolding, and AI enhancement via gpt-image-2 for hero cards only (everything else is Pillow-deterministic). Use whenever the user mentions App Store screenshots, Google Play screenshots, ASO assets, store listing images, screenshot generation, marketing images for a mobile app, or wants to design promotional screenshots for iOS or Android — even if they don't explicitly say 'ASO' or 'screenshots'.
-user-invocable: true
+description: >-
+  Generate high-converting App Store and Google Play screenshots through a guided 9-phase
+  pipeline: codebase analysis, benefit headlines, screenshot pairing, visual direction,
+  per-slot conversion analysis with enhancement recommendations grounded in ASO best practices
+  (Phiture PET model, Storemaven research, SplitMetrics A/B data), deterministic scaffolding,
+  and AI enhancement via gpt-image-2 for hero cards only (everything else is Pillow-deterministic).
+  Use whenever the user mentions App Store screenshots, Google Play screenshots, ASO assets,
+  store listing images, screenshot generation, marketing images for a mobile app, or wants to
+  design promotional screenshots for iOS or Android — even if they don't explicitly say 'ASO'
+  or 'screenshots'.
 ---
 
 You are an App Store Optimization (ASO) consultant and screenshot designer. You generate high-converting screenshots for the App Store and Google Play through a transparent 9-phase pipeline. Each phase has a clear gate the user approves before moving on.
 
-Invoke this skill via `/aso-appstore-screenshots` (also auto-triggers on App Store / Google Play / ASO / store-listing / mobile-marketing-image keywords).
+Invoke this skill by its skill name (`aso-appstore-screenshots`, or the host's supported skill syntax), or ask for App Store / Google Play screenshots. It also auto-triggers on App Store / Google Play / ASO / store-listing / mobile-marketing-image keywords when the host supports automatic skill matching.
+
+## Runtime contract
+
+This skill is agent- and model-neutral. The host decides how to inspect files and images, run commands, present previews, and ask the user for approval. Use the host's available tools and conventions; do not assume a particular CLI, memory system, named tool, or model.
+
+Progress is project-local and portable: keep the skill's resumable state in `.aso/` at the app project root. The bundled hero-card implementation optionally uses OpenAI's `gpt-image-2` through `scripts/enhance_card.py`; that provider choice is independent of the agent or model running this workflow. If a host supplies another image generator, preserve the same scene-only input and deterministic Pillow framing contract.
 
 ## The 9-Phase Pipeline
 
 | Phase | Purpose | Output |
 |---|---|---|
-| 1 | App Discovery | `aso_app_context.md` (memory) |
-| 2 | Headline Authoring | `aso_benefits.md` (memory) |
-| 3 | Source Captures | `aso_screenshot_pairings.md` (memory) |
-| 4 | Visual Direction + Provider Setup | `aso_visual_direction.md` (memory) |
-| 5 | Enhancement Analysis | `aso_enhancements.md` (memory) |
+| 1 | App Discovery | `.aso/aso_app_context.md` (memory) |
+| 2 | Headline Authoring | `.aso/aso_benefits.md` (memory) |
+| 3 | Source Captures | `.aso/aso_screenshot_pairings.md` (memory) |
+| 4 | Visual Direction + Provider Setup | `.aso/aso_visual_direction.md` (memory) |
+| 5 | Enhancement Analysis | `.aso/aso_enhancements.md` (memory) |
 | 6 | Scaffold Production | `screenshots/0N-*/scaffold.png` |
-| 7 | AI Enhancement | `screenshots/final/0N-*.png` + `aso_generated_screenshots.md` |
-| 8 | Replication *(optional — only if multi-locale or multi-platform)* | replicated finals + extended memory |
+| 7 | AI Enhancement | `screenshots/final/0N-*.png` + `.aso/aso_generated_screenshots.md` |
+| 8 | Replication *(optional — only if multi-locale or multi-platform)* | replicated finals + extended `.aso/` memory |
 | 9 | Showcase + Output | `screenshots/showcase.png` |
 
 Skill is **resumable**: it reads memory at the start, marks each phase ✅ / 🟡 / ⬜, and offers to jump in at the earliest unfinished phase. Phases 1-5 are gated all-or-nothing — their memory file is written only on full user approval, so they're either ✅ or ⬜. Phase 7 (and Phase 8) accumulate state per slot in `aso_generated_screenshots.md` as winners are approved, so they have a real partial state — show 🟡 with the slot tally when you see it.
 
 ## RECALL — Always do this first
 
-`MEMORY.md` is already in your context (auto-injected by Claude Code's memory system). **Do NOT use the Read tool on every `aso_*.md` file at start** — that's wasteful. Instead:
+Inspect `.aso/MEMORY.md` if it exists. **Do NOT eagerly open every `aso_*.md` file at start** — that's wasteful. Instead:
 
-1. Scan the `MEMORY.md` index already in context for any entries beginning with `aso_` or `feedback_aso_`. The canonical files this skill writes are: `aso_app_context.md`, `aso_benefits.md`, `aso_screenshot_pairings.md`, `aso_visual_direction.md`, `aso_enhancements.md`, `aso_generated_screenshots.md`.
+1. Scan the `.aso/MEMORY.md` index for entries beginning with `aso_` or `feedback_aso_`. The canonical files this skill writes are in `.aso/`: `aso_app_context.md`, `aso_benefits.md`, `aso_screenshot_pairings.md`, `aso_visual_direction.md`, `aso_enhancements.md`, `aso_generated_screenshots.md`.
 2. Note any **non-canonical** ASO-related entries (e.g., `aso_handover_v2.md`, `aso_feedback_*.md`) — those are user-written context. Read them eagerly, since they often override or pre-fill phase decisions.
-3. **Lazy-read canonical files** — only Read the file backing the phase you're about to act on (e.g., when entering Phase 5, Read `aso_enhancements.md` then). The Phase 1-5 status can be inferred from the index alone (their memory files exist iff their gate passed).
+3. **Lazy-read canonical files** — only open the file backing the phase you're about to act on (e.g., when entering Phase 5, open `.aso/aso_enhancements.md` then). The Phase 1-5 status can be inferred from the index alone (their memory files exist iff their gate passed).
 4. **One exception — `aso_generated_screenshots.md`.** If the index lists it, Phase 7 has been entered; Read it now to count `approved` vs `pending` / `needs-redo` rows. That's the only way to tell partial Phase 7/8 state from the index, and it's what drives the 🟡 marker and the slot tally in the status summary below.
+
+If no `.aso/` state exists, start at Phase 1. If the host does not provide a structured user-input tool, ask the gate question directly in the conversation and wait for the user's answer.
+
+The `USER_INPUT_GATE(...)` snippets in the phase references are pseudocode, not a required tool
+name. They define the decision, options, and approval boundary that every host must preserve.
 
 Present a status summary:
 
@@ -95,7 +114,7 @@ All executables live in `scripts/`:
 - **Pair the most visually impactful capture with the most important headline**
 - **Never use empty states, loading screens, or settings as a screenshot**
 - **Show the scaffold to the user**: catching mistakes there is free; catching them after AI enhancement costs money
-- **Every binding decision is captured via `AskUserQuestion`**: the skill never relies on inferring user intent from free text for choice-between-options gates. Each phase doc includes a concrete `AskUserQuestion(...)` template at its gate step.
+- **Every binding decision is captured via a user-input gate**: the skill never relies on inferring user intent from free text for choice-between-options gates. Each phase doc includes a concrete `USER_INPUT_GATE(...)` template at its gate step. Use a structured input tool when the host provides one; otherwise ask the same options in the conversation and wait for an explicit choice.
 
 ## Style consistency
 

@@ -11,7 +11,8 @@ promoted approved finals into `screenshots/{locale}-{platform}/final/`,
 so the showcase just globs that folder. One showcase per deck.
 
 ```bash
-SKILL_DIR="$HOME/.claude/skills/aso-appstore-screenshots"
+# ASO_SKILL_DIR is the installed directory containing this skill's SKILL.md.
+SKILL_DIR="${ASO_SKILL_DIR:?Set ASO_SKILL_DIR to the installed skill directory}"
 DECK=screenshots/es-ios   # repeat per deck: en-ios, es-android, en-android
 python3 "$SKILL_DIR/scripts/showcase.py" \
   --screenshots "$DECK"/final/0[1-5]-*.png \
@@ -28,7 +29,7 @@ GitHub link displayed: `--github "github.com/their-handle"`.
 
 ## Show the showcase
 
-Read the showcase image and present it to the user.
+Inspect the showcase image with the host's available image viewer and present it to the user.
 
 ## Final summary
 
@@ -60,12 +61,12 @@ These are the files to upload to App Store Connect / Play Console.
 
 User confirms showcase looks right. End of pipeline.
 
-## AskUserQuestion gate
+## User approval gate
 
 After rendering the showcase composite:
 
 ```python
-AskUserQuestion(questions=[{
+USER_INPUT_GATE(questions=[{
     "question": "Showcase composite: ship it, regenerate with different ordering, or revise an underlying slot?",
     "header": "Showcase",
     "multiSelect": False,

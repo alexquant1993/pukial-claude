@@ -15,7 +15,8 @@ base over which Phase 7 will paint the AI card.
 Per slot, derive the `compose.py` flags from `aso_enhancements.md` and run:
 
 ```bash
-SKILL="$HOME/.claude/skills/aso-appstore-screenshots"
+# ASO_SKILL_DIR is the installed directory containing this skill's SKILL.md.
+SKILL="${ASO_SKILL_DIR:?Set ASO_SKILL_DIR to the installed skill directory}"
 
 python3 "$SKILL/scripts/compose.py" \
   --device iphone-6.9 \
@@ -89,7 +90,7 @@ by `overlay_zone.py` for QA debug overlays.
 
 ## Sanity check (this is the gate)
 
-Render scaffolds for all slots, then show every PNG to the user via `Read`.
+Render scaffolds for all slots, then show every PNG to the user with the host's available image viewer or preview mechanism.
 Cheapest place to catch typos, wrong color, wrong rect, wrong breakout
 position. Pillow is local and deterministic — regen costs nothing.
 
@@ -102,13 +103,13 @@ python3 "$SKILL/scripts/overlay_zone.py" $PROJECT/screenshots/es-ios/01-regala/
 Look at `scaffold_with_zone.png` — cyan rect = phone screen, magenta rect =
 breakout zone. Confirm the zone Y aligns with where the AI card should sit.
 
-## AskUserQuestion gate (per slot)
+## User approval gate (per slot)
 
 After rendering each scaffold and showing it to the user, use the
-`AskUserQuestion` tool to lock the decision:
+host's user-input mechanism to lock the decision:
 
 ```python
-AskUserQuestion(
+USER_INPUT_GATE(
     questions=[{
         "question": "Slot N ({verb} / {desc}): lock this scaffold, regenerate with tweaks, or change something upstream?",
         "header": "Slot N scaffold",
@@ -142,5 +143,5 @@ Per slot:
 
 ## Gate
 
-User locks every scaffold via AskUserQuestion before proceeding to Phase 7
+User locks every scaffold via the user-input gate before proceeding to Phase 7
 (if any hero slots) or Phase 8 (replication) / Phase 9 (showcase).
