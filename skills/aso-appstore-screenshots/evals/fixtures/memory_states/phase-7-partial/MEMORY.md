@@ -1,0 +1,6 @@
+- [ASO app context](aso_app_context.md) — mock donation app, iOS+Android, eco-conscious users
+- [ASO benefits](aso_benefits.md) — 5 headlines locked, en-US only
+- [ASO source captures](aso_screenshot_pairings.md) — 5 captures rated Great, paired
+- [ASO visual direction](aso_visual_direction.md) — bg, text, font, provider locked
+- [ASO enhancements](aso_enhancements.md) — per-slot panel_mode + brief + derived
+- [ASO generated](aso_generated_screenshots.md) — partial deck: slots 1–3 done, slot 4 needs redo, slot 5 pending

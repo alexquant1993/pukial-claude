@@ -1,0 +1,49 @@
+{
+  "skill_name": "aso-appstore-screenshots",
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "cold-start-happy-path",
+      "prompt": "Generate App Store screenshots for the app in evals/fixtures/mock_app_codebase/. The simulator captures are in evals/fixtures/mock_screenshots/img01.png through img05.png. Use Nano Banana (mocked — do not actually call the MCP). Stop after Phase 5 (enhancement analysis) and report the memory files written.",
+      "files": [
+        "evals/fixtures/mock_app_codebase/",
+        "evals/fixtures/mock_screenshots/"
+      ],
+      "assertions": [
+        {"text": "Skill walks Phase 1 -> Phase 5 in order", "type": "transcript-contains-sequence"},
+        {"text": "Writes aso_app_context.md", "type": "file-exists"},
+        {"text": "Writes aso_benefits.md", "type": "file-exists"},
+        {"text": "Writes aso_screenshot_pairings.md", "type": "file-exists"},
+        {"text": "Writes aso_visual_direction.md", "type": "file-exists"},
+        {"text": "Writes aso_enhancements.md", "type": "file-exists"},
+        {"text": "Provider is recorded as nano-banana in aso_visual_direction.md", "type": "file-content-grep"}
+      ]
+    },
+    {
+      "id": 2,
+      "eval_name": "resume-mid-pipeline",
+      "prompt": "Continue generating my screenshots. Memory state is loaded from evals/fixtures/memory_states/phase-3-done/.",
+      "files": ["evals/fixtures/memory_states/phase-3-done/"],
+      "assertions": [
+        {"text": "Skill detects existing memory and presents resume status", "type": "transcript-contains"},
+        {"text": "Skill jumps to Phase 4 (Visual Direction)", "type": "transcript-contains"},
+        {"text": "Skill does NOT re-run Phase 1 (App Discovery)", "type": "transcript-not-contains"},
+        {"text": "Skill does NOT re-run Phase 2 (Headlines)", "type": "transcript-not-contains"},
+        {"text": "Skill does NOT re-run Phase 3 (Source Captures)", "type": "transcript-not-contains"}
+      ]
+    },
+    {
+      "id": 3,
+      "eval_name": "provider-switch-mid-deck",
+      "prompt": "Slot 4 keeps drifting with Nano Banana. Switch to OpenAI GPT Image for slot 4 only. Memory state is loaded from evals/fixtures/memory_states/phase-7-partial/. Use mocked OpenAI calls — do not actually hit the API.",
+      "files": ["evals/fixtures/memory_states/phase-7-partial/"],
+      "assertions": [
+        {"text": "aso_generated_screenshots.md records slot 4 with provider openai-gpt-image (the per-slot override)", "type": "file-content-grep"},
+        {"text": "aso_visual_direction.md still lists nano-banana as the deck-default provider (the override is per-slot, not deck-wide)", "type": "file-content-grep"},
+        {"text": "enhance_openai.py is invoked for slot 4", "type": "transcript-contains"},
+        {"text": "Slots 1-3 are not re-generated", "type": "transcript-not-contains"},
+        {"text": "Slot 5 is generated using nano-banana (the deck default), not openai (which was a slot-4-only override)", "type": "transcript-contains"}
+      ]
+    }
+  ]
+}

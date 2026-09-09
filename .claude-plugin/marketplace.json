@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "pukial",
-  "description": "Pukial Claude Code skills: a slide-deck pipeline (deckwright), the Flutter toolkit (ship-check, new-app), and more as they land.",
+  "description": "Pukial Claude Code skills: a slide-deck pipeline (deckwright), the Flutter toolkit (ship-check, new-app), ASO screenshot production, and more as they land.",
   "owner": {
     "name": "Anderson Arroyo",
     "email": "a.arroyo@pucp.pe"
@@ -9,8 +9,8 @@
   "plugins": [
     {
       "name": "pukial",
-      "description": "Every Pukial skill in one plugin: deckwright (idea -> spec -> HTML drafts on a design system -> PPTX or HTML deck, with a QA loop), ship-check (Flutter architecture gate) and new-app (Flutter scaffolder).",
-      "version": "0.3.0",
+      "description": "Every Pukial skill in one plugin: deckwright (idea -> spec -> HTML drafts on a design system -> PPTX or HTML deck, with a QA loop), ship-check (Flutter architecture gate), new-app (Flutter scaffolder), and aso-appstore-screenshots (App Store and Google Play screenshot pipeline).",
+      "version": "0.4.0",
       "source": "./",
       "author": {
         "name": "Anderson Arroyo",

@@ -1,0 +1,3 @@
+- [ASO app context](aso_app_context.md) — mock donation app, iOS+Android, eco-conscious users
+- [ASO benefits](aso_benefits.md) — 5 headlines locked, en-US only
+- [ASO source captures](aso_screenshot_pairings.md) — 5 captures rated Great, paired

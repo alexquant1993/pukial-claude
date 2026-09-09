@@ -1,0 +1,3 @@
+name: mock_donate_app
+description: A mock community-donation app for ASO eval testing.
+version: 1.0.0

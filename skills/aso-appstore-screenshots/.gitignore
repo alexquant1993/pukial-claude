@@ -1,0 +1,12 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS / editor cruft
+.DS_Store
+.vscode/
+.idea/
+
+# Self-test outputs (regenerated each run)
+/tmp/aso_openai_selftest.png

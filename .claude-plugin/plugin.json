@@ -1,7 +1,7 @@
 {
   "name": "pukial",
-  "version": "0.3.0",
-  "description": "Pukial skills for Claude Code, one plugin across domains: deckwright turns an idea into a slide deck (binding spec, HTML drafts on a design system, native editable PPTX or printable HTML deck, QA loop); ship-check is the Flutter architecture gate (review -> triage -> fix -> recommend); new-app scaffolds a com.pukial Flutter app from flutter-pukial-starter.",
+  "version": "0.4.0",
+  "description": "Pukial skills for Claude Code, one plugin across domains: deckwright turns an idea into a slide deck (binding spec, HTML drafts on a design system, native editable PPTX or printable HTML deck, QA loop); ship-check is the Flutter architecture gate (review -> triage -> fix -> recommend); new-app scaffolds a com.pukial Flutter app from flutter-pukial-starter; aso-appstore-screenshots produces conversion-focused App Store and Google Play screenshot decks.",
   "author": {
     "name": "Anderson Arroyo",
     "email": "a.arroyo@pucp.pe"
@@ -17,7 +17,12 @@
     "architecture",
     "code-review",
     "ship-check",
-    "scaffolding"
+    "scaffolding",
+    "aso",
+    "app-store",
+    "google-play",
+    "screenshots",
+    "marketing"
   ],
   "skills": "./skills/"
 }
