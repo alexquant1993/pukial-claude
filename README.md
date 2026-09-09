@@ -1,57 +1,69 @@
 # pukial-claude
 
-A **Claude Code plugin** distributing the Pukial Flutter toolkit so the whole team gets it in
-every project, with one-command updates instead of copy-paste drift.
+A **Claude Code marketplace and plugin** carrying the skills the Pukial team uses,
+so every project gets them with one install and one-command updates instead of
+copy-paste drift. The skills span more than one domain: a slide-deck pipeline,
+a Flutter toolkit, and whatever comes next.
 
-This repo is **both a marketplace and a single plugin** (`pukial-flutter`).
+This repo is **both a marketplace** (`pukial`) **and a single plugin**
+(`pukial-flutter`, the name it was first published under; it now carries every
+skill). Each skill lives in its own directory under `skills/` with a `SKILL.md`
+that says when it triggers and what it needs.
 
-## What's in the plugin
+## Skills
 
-| Skill | What it does |
-|---|---|
-| `ship-check` | Post-development architecture gate for Pukial Flutter apps: deterministic verification + TIER-1 grep sweep, parallel fresh-eyes review (architecture + bugs), author triage, opt-in fix loop, and a recommend-only simplifier pass. |
-| `new-app` | Scaffolds a new `com.pukial` Flutter app from the `flutter-pukial-starter` (rename, ids, keys). |
-| `deckwright` | Turns an idea into a slide deck: a binding spec, HTML drafts drawn on a design system (the bundled `relay` brand or your own), then a native editable PowerPoint file or a printable HTML deck, with a QA loop that proves the file opens and says what the spec said. Ask for a deck to invoke it; its intake asks about the design system, the HTML draft, notes and the output. Python with python-pptx and Pillow, a browser the capture script can drive; Windows with PowerPoint only for the PPTX integrity and export steps. See `skills/deckwright/README.md`. |
+| Skill | Domain | What it does | Needs |
+|---|---|---|---|
+| `deckwright` | Slides | Turns an idea into a slide deck: a binding spec, HTML drafts drawn on a design system (the bundled `relay` brand or your own), then a native editable PowerPoint file or a printable HTML deck, with a QA loop that proves the file opens and says what the spec said. Its intake asks about the design system, the HTML draft, speaker notes and the output before anything is built. | Python with `python-pptx` and `Pillow`; a browser the capture script can drive; Windows with PowerPoint only for the PPTX integrity and export steps. `skills/deckwright/README.md` has the map and the gate. |
+| `ship-check` | Flutter | Post-development architecture gate for Pukial Flutter apps: deterministic verification and a TIER-1 grep sweep, parallel fresh-eyes review (architecture and bugs), author triage, an opt-in fix loop, and a recommend-only simplifier pass. | A repo started from `flutter-pukial-starter`: its `Makefile` targets, `.env` and FVM pin. A copy of the architecture standard ships with the skill. |
+| `new-app` | Flutter | Scaffolds a new `com.pukial` Flutter app from `flutter-pukial-starter` (rename, ids, keys). | A checkout of the starter. |
 
-This plugin is **skills-only**. The `dart-format` PostToolUse hook is intentionally *not* bundled —
-it is FVM-pinned, repo-bound infrastructure, so it lives in the `flutter-pukial-starter` (and is
-inherited by any app scaffolded from it). Bundling it here would double-fire it on starter-derived
-apps.
+Invoke a skill by asking for what it does ("build me a deck", "run ship-check",
+"scaffold a new app") or by its slash name. Each `SKILL.md` lists its trigger
+phrases.
 
-## Install (teammates)
+## Install
 
 ```text
 /plugin marketplace add alexquant1993/pukial-claude     # or your fork/org path
 /plugin install pukial-flutter@pukial
 ```
 
-Then in any project: invoke `/ship-check` or `/new-app`. Update everywhere with `/plugin update`.
+Update everywhere with `/plugin update`.
 
 > Installing from a local clone instead of GitHub:
-> `/plugin marketplace add /Users/<you>/Documents/01_projects/pukial-claude`
+> `/plugin marketplace add /path/to/pukial-claude`
 
-## Prerequisite — the skills need a Pukial Flutter repo
+## What the plugin does and does not carry
 
-The plugin distributes the **skill logic**; it does **not** carry the per-repo scaffolding the skills
-depend on:
+The plugin distributes **skill logic**: instructions, references, scripts and
+the fixtures a skill needs to prove itself. It does not carry per-repo
+infrastructure. The Flutter skills expect a repo started from
+`flutter-pukial-starter` (Makefile, env, FVM pin, the `dart-format` hook, which
+is deliberately not bundled here so it does not double-fire). `deckwright` is
+self-contained: it brings its own default design system, fonts under the SIL
+Open Font License, and a gate you can run on the skill directory itself.
 
-- `ship-check` runs `make analyze` / `make test` / `make codegen` and reads
-  `flutter-architecture-standard.md`. The `Makefile` targets, `.env` setup, and FVM pin come from the
-  **`flutter-pukial-starter`** (and are inherited by any app scaffolded from it). A copy of the
-  standard ships in the plugin so the reviewer always has one; an app may keep its own repo-level
-  copy and `ship-check`'s staleness note will compare versions.
-- `new-app` operates on a checkout of the starter.
+## Adding a skill
 
-So the team flow is: **install the plugin once** (skills everywhere) **+ start apps from the starter**
-(per-repo Makefile/standard/settings). The plugin handles distribution + versioning; the starter
-handles per-repo wiring.
+1. Create `skills/<name>/SKILL.md` with front matter (`name`, `description` that
+   says when to trigger and when not to) and keep the router short; put the
+   know-how in files next to it.
+2. Bundle only what the skill needs to run: scripts with a `Run:` line, templates
+   that are filled in enough to copy, no client or employer material, no
+   proprietary fonts or marks.
+3. Add a row to the table above and, if the skill has requirements, say them in
+   the Needs column.
+4. Bump the version (below).
 
 ## Versioning
 
 Bump `version` in `.claude-plugin/plugin.json` **and** the matching entry in
-`.claude-plugin/marketplace.json` together, then tag the commit. Teammates pick it up with
-`/plugin update`.
+`.claude-plugin/marketplace.json` together, then tag the commit. Teammates pick
+it up with `/plugin update`.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT - see [LICENSE](LICENSE). Bundled third-party assets carry their own
+licences next to them (the fonts under `skills/deckwright/brands/relay/fonts/`
+are SIL OFL 1.1).
