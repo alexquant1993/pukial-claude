@@ -82,7 +82,7 @@ and exact package versions as the starter (reproducible from day one).
 cd <DEST>
 # Run rename.sh from THIS skill's own directory — substitute the absolute path you were given as
 # "Base directory for this skill" when this skill loaded (`.claude/skills/new-app/` for a repo-level
-# copy, or the plugin install path under `pukial-flutter`). It operates on the current directory, so
+# copy, or the plugin install path under `pukial`). It operates on the current directory, so
 # cwd must be <DEST> as above.
 bash "<skill-dir>/rename.sh" <new_snake_package> "<New Display Name>" <org.prefix>
 ```

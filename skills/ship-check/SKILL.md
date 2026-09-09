@@ -49,7 +49,7 @@ Runs even if Stage 0 failed (near-zero cost, static).
 ```bash
 # Run sweep.py from THIS skill's own directory — substitute the absolute path you were given as
 # "Base directory for this skill" when this skill loaded. That is `.claude/skills/ship-check/` for a
-# repo-level copy, or the plugin install path when installed via the `pukial-flutter` plugin. The
+# repo-level copy, or the plugin install path when installed via the `pukial` plugin. The
 # templates and {STANDARD_PATH} (= <skill-dir>/flutter-architecture-standard.md) live there too.
 python3 "<skill-dir>/sweep.py" --root . --json /tmp/ship-check-sweep.json
 ```

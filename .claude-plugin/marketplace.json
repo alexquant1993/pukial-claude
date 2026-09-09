@@ -8,9 +8,9 @@
   },
   "plugins": [
     {
-      "name": "pukial-flutter",
+      "name": "pukial",
       "description": "Every Pukial skill in one plugin: deckwright (idea -> spec -> HTML drafts on a design system -> PPTX or HTML deck, with a QA loop), ship-check (Flutter architecture gate) and new-app (Flutter scaffolder).",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "source": "./",
       "author": {
         "name": "Anderson Arroyo",

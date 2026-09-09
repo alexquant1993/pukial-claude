@@ -1,6 +1,6 @@
 {
-  "name": "pukial-flutter",
-  "version": "0.2.0",
+  "name": "pukial",
+  "version": "0.3.0",
   "description": "Pukial skills for Claude Code, one plugin across domains: deckwright turns an idea into a slide deck (binding spec, HTML drafts on a design system, native editable PPTX or printable HTML deck, QA loop); ship-check is the Flutter architecture gate (review -> triage -> fix -> recommend); new-app scaffolds a com.pukial Flutter app from flutter-pukial-starter.",
   "author": {
     "name": "Anderson Arroyo",

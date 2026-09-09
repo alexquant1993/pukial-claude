@@ -6,9 +6,8 @@ copy-paste drift. The skills span more than one domain: a slide-deck pipeline,
 a Flutter toolkit, and whatever comes next.
 
 This repo is **both a marketplace** (`pukial`) **and a single plugin**
-(`pukial-flutter`, the name it was first published under; it now carries every
-skill). Each skill lives in its own directory under `skills/` with a `SKILL.md`
-that says when it triggers and what it needs.
+(`pukial`), carrying every skill. Each skill lives in its own directory under
+`skills/` with a `SKILL.md` that says when it triggers and what it needs.
 
 ## Skills
 
@@ -26,13 +25,61 @@ phrases.
 
 ```text
 /plugin marketplace add alexquant1993/pukial-claude     # or your fork/org path
-/plugin install pukial-flutter@pukial
+/plugin install pukial@pukial
 ```
-
-Update everywhere with `/plugin update`.
 
 > Installing from a local clone instead of GitHub:
 > `/plugin marketplace add /path/to/pukial-claude`
+
+### Migrating from `pukial-flutter` (before v0.3.0)
+
+The plugin was published as `pukial-flutter` through v0.2.0, back when the only
+skills were the Flutter ones. As of **v0.3.0 it is `pukial`**, because the
+plugin now spans domains.
+
+The plugin id is the identity key, so this rename does **not** carry over on
+`/plugin update` — the old id simply stops existing in the marketplace. Migrate
+once, by hand:
+
+```text
+/plugin uninstall pukial-flutter@pukial
+/plugin marketplace update pukial
+/plugin install pukial@pukial
+```
+
+Then check `enabledPlugins` in `~/.claude/settings.json`: drop any leftover
+`"pukial-flutter@pukial"` entry, and make sure `"pukial@pukial": true` is there.
+If you installed the plugin at **project** scope anywhere, repeat the uninstall
+and install in each of those projects.
+
+Skill invocation names change with the id: `pukial-flutter:ship-check` becomes
+`pukial:ship-check`, and likewise for `new-app` and `deckwright`. Fix any saved
+prompts, aliases or scripts that spell the old form.
+
+### Keeping up to date
+
+Updates are **not** automatic by default. A marketplace only refreshes on demand,
+so an install can sit months behind without any signal:
+
+```text
+/plugin marketplace update pukial     # refresh the catalog
+/plugin update                        # then pull new plugin versions
+```
+
+To have it refresh on its own, set `autoUpdate` on the marketplace entry in your
+own `~/.claude/settings.json` — this is a per-machine setting, so it cannot be
+turned on for you from this repo and each teammate has to do it once:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "pukial": {
+      "source": { "source": "github", "repo": "alexquant1993/pukial-claude" },
+      "autoUpdate": true
+    }
+  }
+}
+```
 
 ## What the plugin does and does not carry
 
@@ -60,7 +107,12 @@ Open Font License, and a gate you can run on the skill directory itself.
 
 Bump `version` in `.claude-plugin/plugin.json` **and** the matching entry in
 `.claude-plugin/marketplace.json` together, then tag the commit. Teammates pick
-it up with `/plugin update`.
+it up with `/plugin update` — see [Keeping up to date](#keeping-up-to-date),
+since that step is manual unless they have opted into `autoUpdate`.
+
+Never change the plugin `name` in a routine bump. It is the identity key behind
+every teammate's install record and enabled-plugin entry, so renaming it forces
+the manual migration documented above.
 
 ## License
 
