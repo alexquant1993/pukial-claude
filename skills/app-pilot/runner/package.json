@@ -1,0 +1,22 @@
+{
+  "name": "app-pilot-runner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Jev-driven mobile flow runner on agent-device: QA verdicts and screenshot capture points.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "bin": {
+    "app-pilot": "src/cli.mjs"
+  },
+  "scripts": {
+    "check": "node --check src/cli.mjs"
+  },
+  "dependencies": {
+    "@typesafe-ai/sdk": "0.6.0",
+    "agent-device": "0.21.12",
+    "yaml": "^2.8.1"
+  }
+}

@@ -17,6 +17,7 @@ This repo is **both a marketplace** (`pukial`) **and a single plugin**
 | `ship-check` | Flutter | Post-development architecture gate for Pukial Flutter apps: deterministic verification and a TIER-1 grep sweep, parallel fresh-eyes review (architecture and bugs), author triage, an opt-in fix loop, and a recommend-only simplifier pass. | A repo started from `flutter-pukial-starter`: its `Makefile` targets, `.env` and FVM pin. A copy of the architecture standard ships with the skill. |
 | `new-app` | Flutter | Scaffolds a new `com.pukial` Flutter app from `flutter-pukial-starter` (rename, ids, keys). | A checkout of the starter. |
 | `aso-appstore-screenshots` | ASO / Marketing | Produces App Store and Google Play screenshot decks through a gated nine-phase pipeline, deterministic Pillow scaffolds, optional AI hero cards, and multi-platform or locale replication. | Python with `Pillow`; `openai` and `OPENAI_API_KEY` only for AI hero cards. |
+| `app-pilot` | Mobile QA | Drives a real iOS or Android app to run QA flows and capture store-quality screenshots: recorded paths replay with no model, TypeSafe's Jev picks steps from the accessibility tree (~0.3s, ~$0.0001), and Claude handles handoffs, onboarding and screenshot review. | Node ≥ 22.12 (`npm ci` in `runner/`), a booted simulator/emulator with the app, `TYPESAFE_API_KEY` in `~/.config/app-pilot/.env`; macOS for the OCR helper. |
 
 Invoke a skill by asking for what it does ("build me a deck", "run ship-check",
 "scaffold a new app") or by its slash name. Each `SKILL.md` lists its trigger
