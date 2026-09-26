@@ -21,14 +21,15 @@ const centre = r => ({ x: r.x + r.width / 2, y: r.y + r.height / 2 });
 // tapped where nothing covers it; its centre usually lands on the sheet it sits behind.
 export function dismissControl(snapshot) {
   const options = buildActions(snapshot, {}).actions.filter(a => a.kind === 'press' && a.ref && DISMISS.test(firstLine(a.label)));
-  const explicit = EXPLICIT.map(re => options.find(a => re.test(firstLine(a.label)))).find(Boolean);
-  if (explicit) return explicit;
+  const [cancel, back] = EXPLICIT.map(re => options.find(a => re.test(firstLine(a.label))));
+  if (cancel) return cancel;
   // The dimmed backdrop is often reported twice: as a whole-window layer and as the visible strip outside the sheet.
   const window = windowOf(snapshot);
   // A backdrop spans the screen's width; a small "Dismiss" is a sheet's drag handle, which does not close on a tap.
   const backdrop = window && snapshot.nodes.filter(n => n.visibleToUser !== false && BACKDROP.test(firstLine(n.label)) && n.rect?.height > 0 && n.rect.width >= 0.9 * window.width)
     .sort((a, b) => a.rect.height - b.rect.height)[0];
-  if (!backdrop || !window) return options.find(a => BACKDROP.test(firstLine(a.label))) ?? null;
+  // With a sheet or menu up, a "Back" belongs to the page under it: the layer on top closes first.
+  if (!backdrop || !window) return back ?? options.find(a => BACKDROP.test(firstLine(a.label))) ?? null;
   // Tap a part of the backdrop that nothing else covers: the centre suits a pop-up menu, the top a bottom sheet.
   const r = backdrop.rect;
   const covered = p => snapshot.nodes.some(n => n !== backdrop && n.visibleToUser !== false && n.rect && (n.label || n.hittable) && !BACKDROP.test(firstLine(n.label))
@@ -59,7 +60,9 @@ export function cornerControl(snapshot, backLike = node => !firstLine(node.label
   const corner = snapshot.nodes.filter(n => n.visibleToUser !== false && n.enabled !== false && (n.label ? /button/i.test(n.type ?? '') : n.hittable) && n.rect
     && n.rect.width > 0 && n.rect.width <= (n.label ? 0.5 : 0.3) * window.width && n.rect.height <= 0.12 * window.height && n.rect.y <= 0.15 * window.height
     && (rtl ? n.rect.x + n.rect.width >= 0.8 * window.width : n.rect.x <= 0.2 * window.width) && backLike(n));
-  const node = corner.sort((a, b) => a.rect.width * a.rect.height - b.rect.width * b.rect.height)[0];
+  // A control labeled as back beats an unlabeled icon beside it (e.g. a filter button under a "Back" button).
+  const named = n => (DISMISS.test(firstLine(n.label)) ? 0 : 1);
+  const node = corner.sort((a, b) => named(a) - named(b) || a.rect.width * a.rect.height - b.rect.width * b.rect.height)[0];
   return node ? { kind: 'press', point: centre(node.rect), rect: node.rect, label: node.label ?? '' } : null;
 }
 

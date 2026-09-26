@@ -7,7 +7,7 @@ import { Device } from './device.mjs';
 import { Jev } from './jev.mjs';
 import { runFlow, POLICY } from './loop.mjs';
 import { finishRun, newRunDir, promoteCaptures } from './output.mjs';
-import { doctor, setup } from './doctor.mjs';
+import { bootedDevices, doctor, installed, setup } from './doctor.mjs';
 import { explore } from './explore.mjs';
 
 const EXIT = { passed: 0, failed: 1, incomplete: 2, error: 3, needs_help: 4 };
@@ -16,7 +16,8 @@ const USAGE = `Usage (via the runner/app-pilot wrapper):
   app-pilot doctor [app-map.yaml] [--json]          check key, OCR, devices, app installed, app-map inputs
   app-pilot explore <app-map.yaml> --platform P     walk the app and list its screens (read-only; no text input);
                                                     --platforms ios,android explores both at the same time. A later run
-                                                    refreshes the saved map (section tops + anything new); --fresh starts over
+                                                    refreshes the saved map (section tops + anything new); --fresh starts over;
+                                                    --devices N splits the sections across N booted devices per platform
   app-pilot run <app-map.yaml> <flow> --platform P  run one flow
   app-pilot run-all <app-map.yaml>                  flows x platforms x locales, one after another, with a summary
   app-pilot goal --app <id> --platform P "<goal>"   one-off goal without an app map
@@ -25,7 +26,7 @@ Options:
   --platform ios|android        run / explore / goal
   --flows a,b  --platforms ios,android  --locales es,en    run-all selection (defaults: all non-language flows,
                                 every platform in app.platforms with a booted device, every app.locales entry)
-  --udid <id> | --serial <id>   Target device (default: the booted one for the platform)
+  --udid <id> | --serial <id>   Target device (default: the booted one for the platform); explore takes a comma list
   --locale <tag>                App language for the run (default: first of app.locales)
   --explore                     Ignore the recorded path and let Jev choose every step
   --resume <run-dir> --note "<what the host agent did> -> <effect>"   continue after a handoff
@@ -44,7 +45,7 @@ const { values, positionals } = parseArgs({
     locale: { type: 'string' }, keep: { type: 'boolean' }, resume: { type: 'string' }, note: { type: 'string' },
     flows: { type: 'string' }, platforms: { type: 'string' }, locales: { type: 'string' },
     'min-confidence': { type: 'string' }, 'max-steps': { type: 'string' }, 'max-screens': { type: 'string' }, depth: { type: 'string' },
-    record: { type: 'boolean' }, explore: { type: 'boolean' }, fresh: { type: 'boolean' }, json: { type: 'boolean' }, help: { type: 'boolean' },
+    devices: { type: 'string' }, record: { type: 'boolean' }, explore: { type: 'boolean' }, fresh: { type: 'boolean' }, json: { type: 'boolean' }, help: { type: 'boolean' },
   },
 });
 
@@ -73,10 +74,22 @@ if (command === 'doctor') {
 async function target(platform) {
   if (platform === 'ios' && values.udid) return { udid: values.udid };
   if (platform === 'android' && values.serial) return { serial: values.serial };
-  const { devices } = await doctor({});
-  const device = devices.find(d => d.platform === platform);
+  const device = (await bootedDevices()).find(d => d.platform === platform);
   if (!device) throw new Error(`No booted ${platform} device. Boot one or pass --udid/--serial.`);
   return platform === 'ios' ? { udid: device.id } : { serial: device.id };
+}
+
+// Explore can split an app's sections across several devices of one platform: the ones named (comma-separated), else
+// up to `count` booted simulators/emulators that have the app installed.
+async function targets(platform, count, appId) {
+  const named = (platform === 'ios' ? values.udid : values.serial)?.split(',').map(s => s.trim()).filter(Boolean);
+  const ids = named?.length ? named : await bootedDevices().then(async devices => {
+    const own = devices.filter(d => d.platform === platform);
+    const ready = await Promise.all(own.map(d => installed(platform, d.id, appId)));
+    return own.filter((d, i) => ready[i]).slice(0, count).map(d => d.id);
+  });
+  if (!ids.length) throw new Error(`No booted ${platform} device with ${appId} installed. Boot one or pass --udid/--serial.`);
+  return ids.map(id => (platform === 'ios' ? { udid: id } : { serial: id }));
 }
 
 const defaultLocale = map => map?.app?.locales?.[0] ?? 'default';
@@ -141,7 +154,7 @@ if (command === 'run-all') {
   const list = value => value?.split(',').map(s => s.trim()).filter(Boolean);
   const languageFlow = locale => map.app.languageFlow?.replace('{locale}', locale);
   const flows = list(values.flows) ?? map.flows.map(f => f.id).filter(id => !/^language-/.test(id));
-  const { devices } = await doctor({});
+  const devices = await bootedDevices();
   const platforms = list(values.platforms) ?? (map.app.platforms ?? Object.keys(map.app.ids)).filter(p => devices.some(d => d.platform === p));
   const locales = list(values.locales) ?? map.app.locales ?? ['default'];
   const rows = [];
@@ -179,10 +192,10 @@ if (command === 'explore') {
   // One platform failing (a stalled device) must not throw away the other's run.
   const settledReports = await Promise.allSettled(platforms.map(async platform => {
     const prefix = platforms.length > 1 ? `[${platform}] ` : '';
-    const report = await explore({ map, mapPath, platform, locale, ids: await target(platform),
+    const report = await explore({ map, mapPath, platform, locale, devices: await targets(platform, Number(values.devices ?? 1), map.app.ids[platform]),
       maxScreens: Number(values['max-screens'] ?? 60), maxDepth: Number(values.depth ?? 3), fresh: values.fresh, log: values.json ? () => {} : line => console.log(prefix + line) });
-    return values.json ? report : { platform, mode: report.mode, screens: report.screens.length, newScreens: report.newScreens.length, missing: report.missing,
-      file: report.file, minutes: report.minutes, jevRequests: report.jevRequests,
+    return values.json ? report : { platform, devices: report.devices, mode: report.mode, screens: report.screens.length, newScreens: report.newScreens.length, missing: report.missing,
+      file: report.file, seconds: report.seconds, jevRequests: report.jevRequests,
       taps: report.taps, stoppedBecause: report.stoppedBecause, gaveUp: report.gaveUp.length, externalLinks: report.external.length };
   }));
   const reports = settledReports.map((r, i) => (r.status === 'fulfilled' ? r.value : { platform: platforms[i], error: String(r.reason?.message ?? r.reason) }));

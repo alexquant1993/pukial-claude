@@ -123,7 +123,17 @@ async function speedWarnings(platform, device, appId) {
   return found;
 }
 
-async function installed(platform, deviceId, appId) {
+// Booted simulators and emulators straight from simctl and adb, for picking run targets: agent-device's full listing
+// (which doctor shows, physical devices included) takes about 1.5 s.
+export async function bootedDevices() {
+  const ios = run('xcrun', ['simctl', 'list', 'devices', 'booted', '-j']).then(({ stdout }) => Object.values(JSON.parse(stdout).devices).flat()
+    .filter(d => d.state === 'Booted' && /iPhone|iPad/.test(d.deviceTypeIdentifier ?? d.name)).map(d => ({ platform: 'ios', id: d.udid, name: d.name, kind: 'simulator' }))).catch(() => []);
+  const android = run('adb', ['devices']).then(({ stdout }) => stdout.split('\n').map(l => l.trim().split(/\s+/))
+    .filter(([id, state]) => /^emulator-\d+$/.test(id ?? '') && state === 'device').map(([id]) => ({ platform: 'android', id, name: id, kind: 'emulator' }))).catch(() => []);
+  return (await Promise.all([ios, android])).flat();
+}
+
+export async function installed(platform, deviceId, appId) {
   try {
     if (platform === 'ios') { await run('xcrun', ['simctl', 'get_app_container', deviceId, appId]); return true; }
     const { stdout } = await run('adb', ['-s', deviceId, 'shell', 'pm', 'list', 'packages', appId]);

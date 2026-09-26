@@ -56,8 +56,9 @@ Do not start driving the app straight away. Settle what to run, then run only th
    - something custom;
 
    crossed with platforms × languages and the purpose (store screenshots, website images, QA, an accessibility
-   report). Give each option an estimated time and cost from the numbers in this file (explore ≈ 3 s per new screen
-   per platform, both platforms in parallel; a refresh of an explored app ≈ 20 s; Jev ≈ $0.0001 per call).
+   report). Give each option an estimated time and cost from the numbers in this file (explore ≈ 2.5 s per new
+   screen on one device, ≈ 1.5 s with two, both platforms in parallel; a refresh of an explored app ≈ 15 s; Jev ≈
+   $0.0001 per call).
 3. **Production data is the user's call.** If the only accounts are real ones, say so and get a yes before running
    flows that sign in. Explore and read-only flows never write; anything a flow creates is listed and deleted after.
 4. **Order**: a login flow first when the others assume a signed-in app, then the rest.
@@ -67,14 +68,21 @@ Do not start driving the app straight away. Settle what to run, then run only th
 ## 2. Explore: map the app (read-only)
 
 ```bash
-app-pilot explore .app-pilot/app-map.yaml --platforms ios,android [--locale en] [--depth 3] [--fresh]
+app-pilot explore .app-pilot/app-map.yaml --platforms ios,android [--locale en] [--depth 3] [--fresh] [--devices 2]
 ```
 
 It browses like a person and writes `.app-pilot/discovery-<platform>-<locale>.json`: every distinct screen (title,
 section, texts, controls, how it was reached), the links between them, external links, and the accessibility gaps.
-Both platforms run at the same time. Measured on a Flutter app (~40 screens per platform, depth 3): ~110 s for a
-first run, ~20 s for a refresh.
+Both platforms run at the same time. Measured on a Flutter app (~35 screens per platform, depth 3): ~80 s per
+platform on one device, 45-55 s with `--devices 2`; ~15 s for a refresh.
 
+- **Several devices per platform** (`--devices N`, or `--udid a,b` / `--serial a,b`): up to N booted simulators or
+  emulators that have the app installed (and are signed in, if the app needs it) share one map. Each device takes
+  whole sections (tabs, sub-tabs included) from a common queue; one that runs out takes untried controls over from
+  another. Each device needs its own memory (an Android emulator ~4-9 GB on the host): on a machine that swaps, more
+  devices make the run slower, not faster. A second simulator is `xcrun simctl create` + `simctl install` of the
+  same build + the app map's login flow (`simctl clone` can fail on protected files); a second emulator is a copy of
+  the AVD folder (`cp -c` on APFS) started with `-port 5556`. Ask before creating or booting devices.
 - **Refresh by default.** The discovery file keeps the map. The next run checks each section's top screen again,
   asks Jev only about controls it has not judged before, and explores only what is new; the summary lists
   `newScreens` and `missing` section tops. `--fresh` explores everything again (after a large redesign).
@@ -84,8 +92,12 @@ first run, ~20 s for a refresh.
   it records dialogs without answering them, with one exception: the "leave this page?" dialog its own back raised
   on a form it never typed into, which it answers with Exit/Discard; it detects when a tap opened another app (a
   browser) and comes back without acting there.
-- **Navigation:** tab bars, the app's own back and close controls, iOS sheets swiped down, the system back last,
-  and a relaunch only when no known route is left (reported under `relaunches`).
+- **Navigation:** tab bars, the app's own back and close controls, iOS sheets swiped down, the system back last
+  (never on a top-level Android screen, where it closes the app), and a relaunch only when no known route is left
+  (reported under `relaunches`). A sheet or dialog is closed before heading to another section.
+- **Start:** always a fresh start of the app (a running app keeps each tab's inner pages in memory). On Android a
+  running app restarts in a new task (its navigation starts over in ~1 s instead of a cold start); if anything but
+  the app is in front after that, a cold launch, and explore stops rather than tap another app.
 - `APP_PILOT_DEBUG=1` logs each back rung (⤺), reopen (↺), relaunch reason (↻), external link (↗), and why a control
   was skipped. Use it before changing the runner.
 

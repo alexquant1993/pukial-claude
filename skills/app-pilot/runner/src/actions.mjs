@@ -86,7 +86,10 @@ function splitLabel(label) {
 function buildIndex(snapshot) {
   const byIndex = new Map(snapshot.nodes.map(n => [n.index, n]));
   const textsUnder = new Map();
+  // Nodes with a control somewhere inside them: a layout that holds controls is not itself one.
+  const wrapsControl = new Set();
   for (const n of visible(snapshot)) {
+    if (n.hittable === true || TAPPABLE.has(roleOf(n))) for (let p = byIndex.get(n.parentIndex); p && !wrapsControl.has(p.index); p = byIndex.get(p.parentIndex)) wrapsControl.add(p.index);
     if (!n.label || isScrollBar(n.label) || !TEXT.has(shortType(n.type))) continue;
     for (let p = byIndex.get(n.parentIndex); p; p = byIndex.get(p.parentIndex)) {
       const list = textsUnder.get(p.index) ?? [];
@@ -94,7 +97,7 @@ function buildIndex(snapshot) {
       textsUnder.set(p.index, list);
     }
   }
-  return { byIndex, textsUnder };
+  return { byIndex, textsUnder, wrapsControl };
 }
 
 // The nearest ancestor that carries other text names the control's surroundings (e.g. its item card).
@@ -165,6 +168,10 @@ export function buildActions(snapshot, inputs = {}, learned = {}, screenText = [
       if (!own && (!TAPPABLE.has(role) || (node.rect && (node.rect.width > 300 || node.rect.height > 200)))) continue;
       elements.push({ node, role: role === 'other' ? 'element' : role, label: own ?? '' });
       if (!own) unlabeled.push({ ref: node.ref, role, rect: node.rect });
+    } else if (node.hittable === true && !index.wrapsControl.has(node.index) && index.textsUnder.has(node.index)) {
+      // Native Android list rows are clickable layouts without a name of their own; the texts inside them name the row
+      // ("Network & internet" over "Mobile, Wi-Fi, hotspot"). Flutter merges them into the node's own label instead.
+      elements.push({ node, role: 'element', label: index.textsUnder.get(node.index).join('\n') });
     }
   }
 
@@ -207,7 +214,7 @@ export function buildActions(snapshot, inputs = {}, learned = {}, screenText = [
     const what = el.label ? `${el.role} "${name}"${detail ? ` (${detail})` : ''}${where}`
       : learnedName ? `${el.role} "${learnedName}"${where}`
       : `unlabeled ${el.role} at the ${pos || 'screen'} of ${ctx ? `"${ctx.text}"` : 'the screen'}`;
-    const base = { ref: pin(snapshot, el.node.ref), rect: el.node.rect, label: el.label, contextKey: `${ctx?.text ?? ''}|${pos}` };
+    const base = { ref: pin(snapshot, el.node.ref), rect: el.node.rect, label: el.label, selected: el.node.selected || undefined, contextKey: `${ctx?.text ?? ''}|${pos}` };
     if (el.role === 'text field') {
       const current = el.value && el.value !== el.label ? ` (currently ${JSON.stringify(String(el.value).slice(0, 40))})` : '';
       const entries = Object.entries(inputs);

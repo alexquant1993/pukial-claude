@@ -31,6 +31,7 @@ async function openIdbShell(udid) {
   return { send, close: () => child.stdin.end() };
 }
 
+const TRANSITION_MS = 600;
 const ANIMATION_SETTINGS = ['window_animation_scale', 'transition_animation_scale', 'animator_duration_scale'];
 // Captures taken mid-transition or under load can fail once and succeed on the next try; a stalled one times out.
 const TRANSIENT_CAPTURE = /IncompleteCapture|insufficient foreground app content|content-poor|could not be parsed|timed out/i;
@@ -46,10 +47,15 @@ export class Device {
 
   // iOS opens in the foreground to give the fast accessibility bridge a chance; Android's immediate snapshot can
   // race the app's first frame, so it opens plainly and retries once if the app is not showing yet.
-  async open({ relaunch = true } = {}) {
+  // `freshTask` (Android): a running app starts over in a new task instead of a new process. Its screens and
+  // navigation start over as in a cold start, in about a second instead of 5-10s; flows keep the full relaunch.
+  async open({ relaunch = true, freshTask = false } = {}) {
     if (this.target.platform === 'android' && !this.savedAnimations) await this.stillAnimations();
-    const options = { ...this.target, relaunch, foreground: this.target.platform === 'ios', timeoutMs: 120_000, waitMs: 5_000, ...this.localeOptions() };
     if (this.locale && this.target.platform === 'android') await this.setAndroidLocale();
+    if (relaunch && freshTask && this.target.platform === 'android' && await this.restartTask()) relaunch = false;
+    const options = { ...this.target, relaunch, foreground: this.target.platform === 'ios', timeoutMs: 120_000, waitMs: 5_000, ...this.localeOptions() };
+    // Connecting idb takes seconds; it happens while the app starts instead of on the first tap.
+    this.directTap().catch(() => {});
     let result;
     try { result = await this.client.apps.open(options); }
     catch (error) {
@@ -57,6 +63,18 @@ export class Device {
       result = await this.client.apps.open({ ...options, relaunch: false });
     }
     return result.device ?? result.selection ?? null;
+  }
+
+  // Clears the app's task and starts its launcher activity again, when the app is running (false otherwise).
+  async restartTask() {
+    const adb = args => run('adb', [...(this.target.serial ? ['-s', this.target.serial] : []), 'shell', ...args], { timeout: 30_000 }).then(r => r.stdout);
+    try {
+      if (!(await adb(['pidof', this.target.app])).trim()) return false;
+      this.launcher ??= (await adb(['cmd', 'package', 'resolve-activity', '--brief', this.target.app])).trim().split('\n').at(-1).trim();
+      if (!this.launcher.includes('/')) return false;
+      // FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK
+      return /Status: ok/.test(await adb(['am', 'start', '-W', '-f', '0x10008000', '-n', this.launcher]));
+    } catch { return false; }
   }
 
   // iOS takes the language per launch; the app sees it as the device language without touching Settings.
@@ -94,6 +112,16 @@ export class Device {
     await run('adb', [...serial, 'shell', 'cmd', 'locale', 'set-app-locales', this.target.app, '--locales', this.locale]);
   }
 
+  // Android: the package whose activity is on top, or null. The activity manager switches as soon as a tap starts
+  // another app (a link: Chrome within ~0.2s), while the accessibility tree shows the old app until the new one draws
+  // (0.6-1.1s later, more under load).
+  async topPackage() {
+    if (this.target.platform !== 'android') return null;
+    const serial = this.target.serial ? ['-s', this.target.serial] : [];
+    const { stdout } = await run('adb', [...serial, 'shell', 'dumpsys activity activities | grep -m1 -E "topResumedActivity|mResumedActivity"'], { timeout: 5_000 }).catch(() => ({ stdout: '' }));
+    return stdout.match(/ActivityRecord\{\S+ \S+ ([\w.]+)\//)?.[1] ?? null;
+  }
+
   // Raw keeps unlabeled controls and platform classes (e.g. Flutter text inputs); on iOS it costs the same as the default view.
   // Captures taken mid-transition (or on a device short of memory) can come back incomplete; they succeed on a retry.
   async snapshot(scope) {
@@ -120,7 +148,7 @@ export class Device {
    * Polls until the screen differs from `before` and then holds still for one more capture.
    * The last capture is returned so the next decision needs no extra observation.
    */
-  async observeAfter(before, { scope, changeMs = 1_500, maxMs = 4_000 } = {}) {
+  async observeAfter(before, { scope, changeMs = 1_500, maxMs = 4_000, until = null, expect = null } = {}) {
     const started = performance.now();
     this.settled = null;
     let previous = null, snapshot = null, changed = false, polls = 0;
@@ -128,7 +156,11 @@ export class Device {
       snapshot = await this.snapshot(scope);
       polls++;
       const print = fingerprint(snapshot);
-      if (print !== before) changed = true;
+      if (print !== before && !changed) { changed = true; this.changedAt = this.inputAt; }
+      // The caller needs no settled view of some screens (e.g. another app, which it leaves at once).
+      if (changed && until?.(snapshot)) break;
+      // Exactly the view the caller expects (a page it left, going back to it): that page is already still.
+      if (changed && expect && print === expect) { this.settled = snapshot; break; }
       // Two identical looks after a change: the screen has settled, and this view can be tapped from without re-checking.
       if (changed && print === previous) { this.settled = snapshot; break; }
       if (!changed && performance.now() - started > changeMs) break;
@@ -138,6 +170,14 @@ export class Device {
   }
 
   markInput() { this.inputMark = this.leftApp ?? 0; this.inputAt = performance.now(); }
+
+  // iOS reports a page at its final place while its transition still runs, and drops taps until it ends (more so on
+  // a busy machine): the first tap after an input that changed the screen waits until the transition is surely over.
+  async afterTransition() {
+    const wait = this.target.platform === 'ios' && this.changedAt ? TRANSITION_MS - (performance.now() - this.changedAt) : 0;
+    this.changedAt = null;
+    if (wait > 0) await delay(wait);
+  }
 
   // Callers may mark a view as settled after their own repeated looks agreed (e.g. after a launch).
   markSettled(snapshot) { this.settled = snapshot; }
@@ -150,7 +190,10 @@ export class Device {
       case 'fill': return this.fill(action, opts);
       case 'scroll': return this.client.interactions.scroll({ direction: action.direction, ...opts });
       case 'swipe': return this.client.interactions.swipe({ from: action.from, to: action.to, ...opts });
-      case 'back': return this.client.command.back(action.mode ? { mode: action.mode } : {});
+      // An emulator takes the back key straight from adb (~0.1s against ~0.45s through agent-device).
+      case 'back': return !action.mode && this.target.platform === 'android' && /^emulator-/.test(this.target.serial ?? '')
+        ? run('adb', ['-s', this.target.serial, 'shell', 'input', 'keyevent', '4'])
+        : this.client.command.back(action.mode ? { mode: action.mode } : {});
       case 'wait': return delay(400);
       case 'keyboard': return this.client.command.keyboard({ action: action.key });
       default: throw new Error(`Unsupported action kind: ${action.kind}.`);
@@ -165,6 +208,7 @@ export class Device {
   async press(action, opts) {
     // `action` may be re-pointed at a fresher ref below, so the agent call reads it when it runs.
     const viaAgent = () => (this.markInput(), this.client.interactions.press(action.point && !action.ref ? { ...action.point, ...opts } : { ref: action.ref, ...opts }));
+    await this.afterTransition();
     const direct = await this.directTap();
     const rect = action.rect;
     if (!direct || !rect || !(rect.width > 0)) return viaAgent();
@@ -196,15 +240,16 @@ export class Device {
   }
 
   // The direct tap for this device, or null: adb for Android emulators, idb (when installed) for iOS simulators.
-  async directTap() {
-    if (this.tapper !== undefined) return this.tapper;
-    const { platform, serial, udid } = this.target;
-    this.tapper = null;
-    if (platform === 'android' && /^emulator-/.test(serial ?? '')) this.tapper = (x, y) => run('adb', ['-s', serial, 'shell', 'input', 'tap', String(x), String(y)]);
-    if (platform === 'ios' && udid && existsSync(IDB)) {
+  directTap() {
+    this.tapper ??= (async () => {
+      const { platform, serial, udid } = this.target;
+      if (platform === 'android' && /^emulator-/.test(serial ?? '')) return (x, y) => run('adb', ['-s', serial, 'shell', 'input', 'tap', String(x), String(y)]);
+      if (platform !== 'ios' || !udid || !existsSync(IDB)) return null;
       const shell = await openIdbShell(udid).catch(() => null);
-      if (shell) { this.idb = shell; this.tapper = (x, y) => shell.send(`ui tap ${x} ${y}`); }
-    }
+      if (!shell) return null;
+      this.idb = shell;
+      return (x, y) => shell.send(`ui tap ${x} ${y}`);
+    })();
     return this.tapper;
   }
 
@@ -235,6 +280,7 @@ export class Device {
   startRecording(path) { return this.client.recording.record({ action: 'start', path, quality: 'medium' }); }
   stopRecording() { return this.client.recording.record({ action: 'stop' }); }
   async close() {
+    await this.tapper?.catch(() => null);
     this.idb?.close();
     await this.restoreAnimations();
     return this.client.sessions.close();
