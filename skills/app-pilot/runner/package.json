@@ -12,7 +12,8 @@
     "app-pilot": "src/cli.mjs"
   },
   "scripts": {
-    "check": "node --check src/cli.mjs"
+    "check": "node --check src/cli.mjs",
+    "test": "node --test"
   },
   "dependencies": {
     "@typesafe-ai/sdk": "0.6.0",

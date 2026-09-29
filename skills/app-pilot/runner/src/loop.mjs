@@ -15,6 +15,18 @@ const BUSY_WAIT_MS = 8_000;
  */
 export const POLICY = { act: 0.7, actWithMargin: 0.45, margin: 0.25, pass: 0.6, goalMet: 0.9 };
 
+export const isClear = (decision, policy = POLICY) =>
+  decision.confidence >= policy.act || (decision.confidence >= policy.actWithMargin && decision.margin >= policy.margin);
+
+/**
+ * What a done_pass/done_fail choice ends as. A pass that got here missed the goal-met bar, so the host confirms it.
+ * A fail ends the run only when it is clear: a screen still redrawing splits Jev between wait and fail.
+ */
+export function verdictOutcome(action, decision, policy = POLICY) {
+  if (action.status === 'passed') return 'uncertain_pass';
+  return isClear(decision, policy) ? 'failed' : 'uncertain_fail';
+}
+
 export async function runFlow({ flow, device, jev, runDir, resume = false, note, replay = null, policy = POLICY, timeoutMs = 240_000, record = false, log = () => {} }) {
   runDir = resolve(runDir);
   await mkdir(join(runDir, 'captures'), { recursive: true });
@@ -147,7 +159,7 @@ export async function runFlow({ flow, device, jev, runDir, resume = false, note,
         captures: decision.captureProbabilities, candidates: actions.length, snapshot: snapshotFile };
       const line = () => `${String(state.step).padStart(2)} ${(decision.source === 'replay' ? 'replay' : action.kind).padEnd(7)} c=${decision.confidence.toFixed(2)} m=${decision.margin.toFixed(2)} | obs ${t.observeMs}${t.visionMs ? `+${t.visionMs}v` : ''} jev ${t.jevMs} act ${t.actMs ?? '-'} settle ${t.settleMs ?? '-'} ms | ${action.description}`;
 
-      const clear = decision.confidence >= policy.act || (decision.confidence >= policy.actWithMargin && decision.margin >= policy.margin);
+      const clear = isClear(decision, policy);
       // The goal_met yes/no is calibrated on its own; a choice among many options spreads probability even when right.
       const passes = decision.goalMet >= policy.goalMet || (action.id === 'done_pass' && (decision.confidence >= policy.pass || decision.goalMet >= 0.6));
       if (passes && flow.capture.every(c => state.captured[c.id])) {
@@ -173,8 +185,9 @@ export async function runFlow({ flow, device, jev, runDir, resume = false, note,
       }
       if (action.kind === 'verdict') {
         log(line()); await trace(entry);
-        if (action.status === 'passed') { result = handoff('uncertain_pass', { snapshotFile, actions, decision }); break; }
-        result = { status: action.status, reason: action.id, confidence: decision.confidence };
+        const outcome = verdictOutcome(action, decision, policy);
+        result = outcome === 'failed' ? { status: 'failed', reason: action.id, confidence: decision.confidence }
+          : handoff(outcome, { snapshotFile, actions, decision });
         break;
       }
       if (action.kind === 'handoff' || !clear) {
