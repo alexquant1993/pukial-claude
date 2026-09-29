@@ -9,7 +9,7 @@ import { runFlow, POLICY } from './loop.mjs';
 import { finishRun, newRunDir, promoteCaptures } from './output.mjs';
 import { bootedDevices, doctor, installed, setup } from './doctor.mjs';
 import { explore } from './explore.mjs';
-import { recording, replaces } from './paths.mjs';
+import { pathName, recording, replaces } from './paths.mjs';
 
 const EXIT = { passed: 0, failed: 1, incomplete: 2, error: 3, needs_help: 4 };
 const USAGE = `Usage (via the runner/app-pilot wrapper):
@@ -101,10 +101,14 @@ async function runOne({ map, mapPath, flowId, platform, locale, ids, resume, not
   if (values['max-steps']) flow.maxSteps = Number(values['max-steps']);
   const appName = map.app.name ?? flow.app;
   const runDir = resume ?? newRunDir({ appName, flow: flow.id, platform, locale });
-  // Paths are per language because they match controls by their visible labels ("Search" vs "Buscar").
-  const pathFile = join(dirname(mapPath), 'paths', `${flow.id}-${platform}-${locale}.json`);
+  const pathFile = startLocale => {
+    const name = pathName({ flow: flow.id, platform, locale, languageFlow: flow.languageFlow, startLocale });
+    return name && join(dirname(mapPath), 'paths', name);
+  };
   const screenshotsDir = join(dirname(mapPath), 'screenshots');
-  const replay = !ignorePath && !resume && existsSync(pathFile) ? JSON.parse(readFileSync(pathFile, 'utf8')).steps : null;
+  const load = file => (!ignorePath && !resume && file && existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')).steps : null);
+  // A language flow's recording is picked once the runner has seen which language the app starts in.
+  const replay = flow.languageFlow ? startLocale => load(pathFile(startLocale)) : load(pathFile());
   const device = new Device({ app: flow.app, platform, ...ids, session: `app-pilot-${platform}`, locale: locale === 'default' ? null : locale });
 
   if (!quiet) console.log(`${resume ? 'Resuming' : 'Running'} ${flow.id} on ${platform} (${locale})`);
@@ -116,13 +120,14 @@ async function runOne({ map, mapPath, flowId, platform, locale, ids, resume, not
 
   const passed = state.result.status === 'passed';
   // A resumed run records too: its steps carry the handoff as a gap, where a replay hands back to Jev.
-  if (passed && (resume || !replay || state.replayed < state.path.length - 1)) {
-    const next = recording({ flow: flow.id, platform, locale, steps: state.path });
-    if (replaces(existsSync(pathFile) ? JSON.parse(readFileSync(pathFile, 'utf8')) : null, next)) {
-      mkdirSync(dirname(pathFile), { recursive: true });
-      writeFileSync(pathFile, JSON.stringify(next, null, 2));
-      if (!quiet) console.log(`Recorded path -> ${pathFile}${next.partial ? ' (with a handoff gap)' : ''}`);
-    } else if (!quiet) console.log(`Kept the complete recording at ${pathFile} (this run's path has a handoff gap)`);
+  const recordTo = pathFile(state.startLocale);
+  if (passed && recordTo && (!load(recordTo) || state.replayed < state.path.length - 1)) {
+    const next = recording({ flow: flow.id, platform, locale, startLocale: state.startLocale, steps: state.path });
+    if (replaces(existsSync(recordTo) ? JSON.parse(readFileSync(recordTo, 'utf8')) : null, next)) {
+      mkdirSync(dirname(recordTo), { recursive: true });
+      writeFileSync(recordTo, JSON.stringify(next, null, 2));
+      if (!quiet) console.log(`Recorded path -> ${recordTo}${next.partial ? ' (with a handoff gap)' : ''}`);
+    } else if (!quiet) console.log(`Kept the complete recording at ${recordTo} (this run's path has a handoff gap)`);
   }
   const screenshots = passed && Object.keys(state.captured).length
     ? await promoteCaptures({ state, screenshotsDir, flow: flow.id, platform, locale, device: state.device }) : [];
@@ -131,7 +136,7 @@ async function runOne({ map, mapPath, flowId, platform, locale, ids, resume, not
   const timings = state.timings ?? [];
   const stepMs = timings.map(t => (t.observeMs ?? 0) + (t.visionMs ?? 0) + (t.jevMs ?? 0) + (t.actMs ?? 0)).sort((a, b) => a - b);
   return {
-    flow: flow.id, platform, locale, result: state.result, steps: state.step, replayedSteps: state.replayed,
+    flow: flow.id, platform, locale, ...(state.startLocale ? { startLocale: state.startLocale } : {}), result: state.result, steps: state.step, replayedSteps: state.replayed,
     captured: Object.keys(state.captured), missingCaptures: state.missingCaptures,
     medianStepMs: stepMs[Math.floor(stepMs.length / 2)] ?? null,
     jevRequests: state.usage.requests, estimatedCostUsd: Number(state.estimatedCostUsd.toFixed(5)),

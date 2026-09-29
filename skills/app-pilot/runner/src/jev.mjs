@@ -34,6 +34,15 @@ export class Jev {
     return { answers: response.answers ?? {}, usage: response.usage, latencyMs: Math.round(performance.now() - started) };
   }
 
+  // Which of the app's locales its interface is in right now, for flows whose recorded path depends on it.
+  async language(screen, locales) {
+    if (locales.length < 2) return locales.length ? { locale: locales[0], confidence: 1 } : null;
+    const name = (tag, lang) => { try { return new Intl.DisplayNames([lang], { type: 'language' }).of(tag); } catch { return tag; } };
+    const options = Object.fromEntries(locales.map(tag => [tag, `The interface text is in ${name(tag, 'en')} (${name(tag, tag)}).`]));
+    const { answers, usage } = await this.ask({ screen }, { language: choice('Which language is the app\'s own interface text on `screen` written in? Judge by tabs, buttons and headings, not by user-written content.', options) });
+    return answers.language ? { locale: answers.language.choice, confidence: answers.language.confidence, usage } : null;
+  }
+
   // One request: the next action plus a yes/no per pending capture point, answered in parallel.
   async step({ goal, screen, history, actions, captures, timeoutMs }) {
     const questions = {

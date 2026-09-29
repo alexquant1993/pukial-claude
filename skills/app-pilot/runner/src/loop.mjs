@@ -67,6 +67,9 @@ export async function runFlow({ flow, device, jev, runDir, resume = false, note,
   const save = () => writeFile(statePath, JSON.stringify(state, null, 2));
   const trace = entry => appendFile(join(runDir, 'trace.jsonl'), JSON.stringify(entry) + '\n');
   let result = { status: 'incomplete', reason: 'step_limit' };
+  // A language-changing flow's recording depends on the language the app starts in, known after the first look.
+  const replayFor = typeof replay === 'function' ? replay : null;
+  if (replayFor) replay = null;
   let cursor = 0, lastSignature = '', repeats = 0, failures = 0, captureWaits = 0, settleWaits = 0, recording = false, next = null, diverged = !replay?.length;
 
   const waitForContent = () => waitForContentOn(device, flow.scope);
@@ -91,6 +94,15 @@ export async function runFlow({ flow, device, jev, runDir, resume = false, note,
       }
       const snapshotFile = `snapshot-${state.step}.json`;
       if (!isUsable(snapshot)) { await writeFile(join(runDir, snapshotFile), JSON.stringify(snapshot)); result = handoff('unreadable_screen'); break; }
+      if (flow.languageFlow && !resume && state.step === 1) {
+        const found = await jev.language(describeScreen(snapshot), flow.locales).catch(() => null);
+        if (found?.usage) { state.usage.requests++; state.usage.inputTokens += found.usage.input_tokens ?? 0; }
+        // An unsure answer keys nothing: a recording filed under the wrong start language would diverge every time.
+        state.startLocale = found?.confidence >= 0.7 ? found.locale : null;
+        log(`   app starts in ${state.startLocale ?? `an unclear language (${found?.locale ?? '?'}, c=${found?.confidence?.toFixed(2) ?? '-'}): no recording is replayed or written`}`);
+        replay = state.startLocale && replayFor ? replayFor(state.startLocale) : null;
+        diverged = !replay?.length;
+      }
 
       let screenText = null, ocrFallback = [];
       // Pixel check: hide layers that are in the tree but not drawn, and re-look if nothing visible survives.

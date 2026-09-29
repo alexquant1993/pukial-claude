@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 import { interpolate } from './env.mjs';
+import { isLanguageFlow } from './paths.mjs';
 
 export function loadAppMap(path) {
   const map = parse(readFileSync(path, 'utf8'));
@@ -21,5 +22,6 @@ export function resolveFlow(map, flowId, platform) {
     inputs[name] = { value: interpolate(String(def.value)), secret: Boolean(def.secret), hint: def.hint };
   }
   const capture = (flow.capture ?? []).map(c => ({ id: c.id, when: c.when, threshold: c.threshold ?? 0.85 }));
-  return { id: flow.id, app, goal: flow.goal, inputs, capture, maxSteps: flow.maxSteps, scope: flow.scope, labels: map.labels ?? {}, allow: flow.allow ?? [] };
+  return { id: flow.id, app, goal: flow.goal, inputs, capture, maxSteps: flow.maxSteps, scope: flow.scope, labels: map.labels ?? {}, allow: flow.allow ?? [],
+    languageFlow: isLanguageFlow(map, flow.id), locales: map.app.locales ?? [] };
 }
