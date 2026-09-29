@@ -2,7 +2,8 @@ import { execFile } from 'node:child_process';
 import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { createAgentDeviceClient } from 'agent-device';
 import { TypeSafeClient } from '@typesafe-ai/sdk';
@@ -12,6 +13,7 @@ import { ensureOcr } from './vision.mjs';
 const run = promisify(execFile);
 const ENV_FILE = join(CONFIG_DIR, '.env');
 const IDB = join(homedir(), '.cache', 'app-pilot', 'idb-venv', 'bin', 'idb');
+const AGENT_DEVICE = join(dirname(fileURLToPath(import.meta.url)), '..', 'node_modules', '.bin', 'agent-device');
 
 const TEMPLATE = `# app-pilot secrets. Private to this machine: never commit, never paste into a chat.
 # Get a key at https://typesafe.ai (or via Vercel AI Gateway).
@@ -37,8 +39,8 @@ export async function setup() {
 
 const check = (name, ok, detail, fix) => ({ name, ok, detail, ...(ok ? {} : { fix }) });
 
-/** Verifies everything a run needs and says how to fix what is missing. Read-only. */
-export async function doctor({ map = null } = {}) {
+/** Verifies everything a run needs and says how to fix what is missing. Read-only, unless closeStale is set. */
+export async function doctor({ map = null, closeStale = false } = {}) {
   const checks = [];
 
   const key = process.env.TYPESAFE_API_KEY;
@@ -91,6 +93,7 @@ export async function doctor({ map = null } = {}) {
           : 'Build and install: adb install -r <app.apk> (Flutter: flutter build apk --debug).'));
       if (isInstalled) checks.push(...await speedWarnings(platform, device, id));
     }
+    checks.push(await sessionCheck(found.filter(d => (map.app.platforms ?? Object.keys(map.app.ids)).includes(d.platform)), closeStale));
     const missing = [...new Set(Object.values(map.inputs ?? {}).flatMap(spec => [...String(typeof spec === 'string' ? spec : spec.value).matchAll(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g)].map(m => m[1])))]
       .filter(name => !process.env[name]);
     checks.push(check('app-map inputs', missing.length === 0,
@@ -99,6 +102,36 @@ export async function doctor({ map = null } = {}) {
   }
 
   return { ok: checks.every(c => c.ok), checks, devices: found, physicalDevices: physical };
+}
+
+/**
+ * agent-device sessions holding one of these devices. A session outlives the runner or agent that opened it, and
+ * the next run on that device then fails with "Device is already in use by session".
+ */
+export function staleSessions(sessions, devices) {
+  const ids = new Set(devices.map(d => d.id));
+  return sessions
+    .map(s => ({ name: s.name, platform: s.platform, device: typeof s.device === 'string' ? s.device : s.device?.name, deviceId: s.device_id ?? s.id ?? s.device?.id }))
+    .filter(s => ids.has(s.deviceId))
+    .map(s => ({ ...s, close: `agent-device close --session ${/^[\w.-]+$/.test(s.name) ? s.name : `'${s.name.replace(/'/g, `'\\''`)}'`}` }));
+}
+
+async function sessionCheck(devices, closeStale) {
+  const agentDevice = (...args) => run(AGENT_DEVICE, [...args, '--json']).then(r => JSON.parse(r.stdout));
+  let stale;
+  try { stale = staleSessions((await agentDevice('session', 'list')).data?.sessions ?? [], devices); }
+  catch (error) { return { name: 'device sessions', ok: true, warn: true, detail: `could not list agent-device sessions: ${String(error.message).slice(0, 80)}` }; }
+  if (!stale.length) return check('device sessions', true, 'no session holds the app\'s devices');
+  const held = s => `"${s.name}" holds ${s.platform} ${s.device ?? s.deviceId}`;
+  if (closeStale) {
+    const closed = await Promise.all(stale.map(s => agentDevice('close', '--session', s.name).then(() => null, error => `${s.name}: ${String(error.message).slice(0, 60)}`)));
+    const failed = closed.filter(Boolean);
+    return check('device sessions', !failed.length, failed.length ? `could not close ${failed.join('; ')}` : `closed ${stale.map(s => s.name).join(', ')}`,
+      `Close by hand: ${stale.map(s => s.close).join(' ; ')}`);
+  }
+  // A run waiting on a handoff keeps its app-pilot-<platform> session on purpose: close only what nothing will resume.
+  return check('device sessions', false, stale.map(held).join('; '),
+    `If no run is using or waiting on them: ${stale.map(s => s.close).join(' ; ')} (agent-device is in runner/node_modules/.bin), or rerun doctor with --close-stale.`);
 }
 
 // Things that make runs slow without breaking them: said once here instead of showing up as slow runs.

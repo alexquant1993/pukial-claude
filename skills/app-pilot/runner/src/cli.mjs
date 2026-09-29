@@ -14,7 +14,8 @@ import { pathName, recording, replaces } from './paths.mjs';
 const EXIT = { passed: 0, failed: 1, incomplete: 2, error: 3, needs_help: 4 };
 const USAGE = `Usage (via the runner/app-pilot wrapper):
   app-pilot setup                                   create ~/.config/app-pilot/.env (private) for the TypeSafe key
-  app-pilot doctor [app-map.yaml] [--json]          check key, OCR, devices, app installed, app-map inputs
+  app-pilot doctor [app-map.yaml] [--json]          check key, OCR, devices, app installed, app-map inputs, device sessions
+                                                    left open by a dead run (--close-stale closes them)
   app-pilot explore <app-map.yaml> --platform P     walk the app and list its screens (read-only; no text input);
                                                     --platforms ios,android explores both at the same time. A later run
                                                     refreshes the saved map (section tops + anything new); --fresh starts over;
@@ -46,7 +47,7 @@ const { values, positionals } = parseArgs({
     locale: { type: 'string' }, keep: { type: 'boolean' }, resume: { type: 'string' }, note: { type: 'string' },
     flows: { type: 'string' }, platforms: { type: 'string' }, locales: { type: 'string' },
     'min-confidence': { type: 'string' }, 'max-steps': { type: 'string' }, 'max-screens': { type: 'string' }, depth: { type: 'string' },
-    devices: { type: 'string' }, record: { type: 'boolean' }, explore: { type: 'boolean' }, fresh: { type: 'boolean' }, json: { type: 'boolean' }, help: { type: 'boolean' },
+    devices: { type: 'string' }, 'close-stale': { type: 'boolean' }, record: { type: 'boolean' }, explore: { type: 'boolean' }, fresh: { type: 'boolean' }, json: { type: 'boolean' }, help: { type: 'boolean' },
   },
 });
 
@@ -62,7 +63,7 @@ if (command === 'setup') {
 }
 
 if (command === 'doctor') {
-  const report = await doctor({ map: rest[0] ? loadAppMap(rest[0]) : null });
+  const report = await doctor({ map: rest[0] ? loadAppMap(rest[0]) : null, closeStale: values['close-stale'] });
   if (values.json) out(report);
   else {
     for (const c of report.checks) console.log(`${c.warn ? '!' : c.ok ? '✓' : '✗'} ${c.name.padEnd(16)} ${c.detail}${c.fix ? `\n    fix: ${c.fix}` : ''}`);
