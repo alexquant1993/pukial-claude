@@ -5,6 +5,7 @@ import { dismissControl, goBack, navBack } from './navigation.mjs';
 import { redact } from './env.mjs';
 import { fastScreenshot, markHidden, ocr } from './vision.mjs';
 import { labeledCount, mayHaveHiddenLayers, MIN_LABELED, waitForContent as waitForContentOn } from './observe.mjs';
+import { withHandoff } from './paths.mjs';
 
 const HISTORY = 10;
 const BUSY_WAIT_MS = 8_000;
@@ -27,6 +28,26 @@ export function verdictOutcome(action, decision, policy = POLICY) {
   return isClear(decision, policy) ? 'failed' : 'uncertain_fail';
 }
 
+/**
+ * The next recorded step for this screen. A handoff step (the host acted there) and the end of the path stop the
+ * replay; re-syncing never skips across a handoff, since what the host did there is unknown.
+ */
+export function matchReplay(actions, replay, cursor) {
+  const planned = replay[cursor];
+  if (!planned?.kind) return { stop: 'diverged', planned };
+  if (planned.kind === 'end' || planned.kind === 'handoff') return { stop: planned.kind, planned };
+  const match = findPlanned(actions, planned);
+  if (match) return { match, planned, cursor: cursor + 1, skipped: 0 };
+  // Re-sync: a step already satisfied (e.g. an intro the app skipped this time) should not end the replay.
+  for (let ahead = 1; ahead <= 2; ahead++) {
+    const later = replay[cursor + ahead];
+    if (!later?.kind || later.kind === 'end' || later.kind === 'handoff') break;
+    const found = findPlanned(actions, later);
+    if (found) return { match: found, planned: later, cursor: cursor + ahead + 1, skipped: ahead };
+  }
+  return { stop: 'diverged', planned };
+}
+
 export async function runFlow({ flow, device, jev, runDir, resume = false, note, replay = null, policy = POLICY, timeoutMs = 240_000, record = false, log = () => {} }) {
   runDir = resolve(runDir);
   await mkdir(join(runDir, 'captures'), { recursive: true });
@@ -37,6 +58,8 @@ export async function runFlow({ flow, device, jev, runDir, resume = false, note,
   if (resume) {
     // The host agent acted during the handoff; record what it did so Jev's history stays truthful.
     if (note) state.history.push(`${note} (done by the reasoning agent)`);
+    // The recording keeps the gap: a replay stops there and hands back to Jev.
+    state.path = withHandoff(state.path, [], note);
     delete state.handoff;
   }
   const maxSteps = flow.maxSteps ?? 40;
@@ -90,34 +113,34 @@ export async function runFlow({ flow, device, jev, runDir, resume = false, note,
       };
 
       // A recorded path replays with no model call and no pixel check; the first step it cannot match hands control to Jev.
-      let planned = diverged ? null : replay[cursor];
-      const replaying = planned && planned.kind !== 'end';
+      const upcoming = diverged ? null : replay[cursor];
+      const replaying = upcoming && upcoming.kind !== 'end' && upcoming.kind !== 'handoff';
       if (!replaying) await see();
       let built = buildActions(snapshot, flow.inputs, flow.labels, ocrFallback);
       const pending = flow.capture.filter(c => !state.captured[c.id]);
       let decision = null, plannedCaptures = [];
-      if (planned?.kind === 'end') {
-        // The recorded path is exhausted; its last screen's captures are known, and Jev confirms the goal.
-        plannedCaptures = planned.captures ?? [];
-        diverged = true;
-      } else if (planned) {
-        let match = findPlanned(built.actions, planned);
-        // Re-sync: a step already satisfied (e.g. an intro the app skipped this time) should not end the replay.
-        for (let ahead = 1; !match && ahead <= 2 && replay[cursor + ahead]?.kind && replay[cursor + ahead].kind !== 'end'; ahead++) {
-          const later = findPlanned(built.actions, replay[cursor + ahead]);
-          if (later) { match = later; cursor += ahead; planned = replay[cursor]; log(`   replay re-synced: skipped ${ahead} recorded step(s)`); }
-        }
-        if (match) {
+      if (upcoming) {
+        const step = matchReplay(built.actions, replay, cursor);
+        if (step.match) {
+          const { match, planned } = step;
+          if (step.skipped) log(`   replay re-synced: skipped ${step.skipped} recorded step(s)`);
           if (planned.verified) match.verified = true;
           decision = { choice: match.id, confidence: 1, margin: 1, goalMet: 0, latencyMs: 0, source: 'replay',
             captureProbabilities: Object.fromEntries(pending.map(c => [c.id, planned.captures?.includes(c.id) ? 1 : 0])) };
           state.replayed++;
-          cursor++;
+          cursor = step.cursor;
         } else {
           diverged = true;
-          log(`   replay diverged at step ${state.step} (expected: ${planned.description}); Jev takes over`);
-          await see();
-          built = buildActions(snapshot, flow.inputs, flow.labels, ocrFallback);
+          if (step.stop === 'end') {
+            // The recorded path is exhausted; its last screen's captures are known, and Jev confirms the goal.
+            plannedCaptures = step.planned.captures ?? [];
+          } else if (step.stop === 'handoff') {
+            log(`   replay reached the recorded handoff at step ${state.step}${step.planned.note ? ` (${step.planned.note})` : ''}; Jev takes over`);
+          } else {
+            log(`   replay diverged at step ${state.step} (expected: ${step.planned?.description}); Jev takes over`);
+            await see();
+            built = buildActions(snapshot, flow.inputs, flow.labels, ocrFallback);
+          }
         }
       }
       let { actions } = built;
