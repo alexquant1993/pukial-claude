@@ -32,9 +32,11 @@ its own dependencies on first use and after plugin updates.
    variables the app map references (`APP_EMAIL=…`). Secrets never go in a repo or the chat: give the user
    `! open -e ~/.config/app-pilot/.env`.
 2. `app-pilot doctor [<app-map.yaml>]` must end with "Ready." before anything else. It checks the key, the OCR helper,
-   booted simulators/emulators, the app installed on each, the map's variables, and warns (`!`) about what only
-   slows runs down: a Flutter debug build on Android (use a profile build), an emulator under 4 GB RAM, and on macOS
-   a missing idb.
+   booted simulators/emulators, the app installed on each, the map's variables, agent-device sessions left holding
+   the app's devices by a dead run or agent (they make the next run fail with "Device is already in use by session";
+   it prints each close command, and `--close-stale` closes them: not while a run waits on a handoff in one), and
+   warns (`!`) about what only slows runs down: a Flutter debug build on Android (use a profile build), an emulator
+   under 4 GB RAM, and on macOS a missing idb.
 3. Optional on macOS, a big iOS speed-up: taps through idb (a few ms) instead of XCTest (~0.5 s). It needs
    `brew install facebook/fb/idb-companion`, which requires `brew trust --formula facebook/fb/idb-companion`, a
    system-level change that is the user's decision: ask first. Then
@@ -129,6 +131,16 @@ app-pilot run-all .app-pilot/app-map.yaml [--flows a,b] [--platforms ios,android
   setting ignore both: give them `language-<tag>` flows and run one before a locale batch.
 - A passing run records `.app-pilot/paths/<flow>-<platform>-<locale>.json`; later runs replay it and
   only call Jev where the app has changed, plus one final "goal met" check. `--explore` ignores it.
+  A run that passed after a handoff and `--resume` records too, with the handoff kept as a gap
+  (`partial: true`): a replay stops there and Jev carries on; a later clean pass rewrites it without the gap.
+  Language flows (see `references/app-map.md`) are keyed by the language the app starts in instead:
+  `<flow>-<platform>-from-<start>.json`, so each starting language replays its own recording.
+- **One folder per map.** Recordings, screenshots and discovery files live next to the map file. Two maps
+  for one app (e.g. production and dev) need separate folders (`.app-pilot/dev/app-map.yaml`), or they
+  overwrite each other's recordings.
+- **Photo pickers are not supported.** Jev is not offered iOS photo-picker cells, and the Android system
+  picker (`com.google.android.photopicker`) is refused as another app. A flow that picks a photo needs a
+  handoff at that step; the rest of it still records and replays.
 - **Output is only finished work:** a passing run copies its captures to
   `.app-pilot/screenshots/<platform>-<locale>/<flow>-<capture>.png` (replacing the previous version)
   and updates `screenshots/manifest.json`. Everything else (snapshots, frames, trace) lives in the OS
@@ -145,6 +157,7 @@ Read `state.json` → `handoff` and follow `references/handoff.md`. In short:
 | `handoff.reason`                                 | What you do                                                                                                                                                                                                 |
 | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `uncertain`, `jev_requested_help`, `no_progress` | Look at the screen (`agent-device screenshot … --session app-pilot-<platform>`), do the one right step with the CLI in that session, then resume: `… run … --resume <runDir> --note '<action> -> <effect>'` |
+| `uncertain_pass`, `uncertain_fail`               | Jev chose PASSED, or chose FAILED without a clear margin (often a screen still redrawing). Look at the screen: if it is right, resume with a note like `'Looked: the goal is shown -> no change'`; if it is still settling, resume so Jev looks again; if the app is really wrong, report the bug.                                     |
 | `missing_captures`                               | The goal was reached but a capture's `when` never matched. Compare it with `state.handoff.missing[].lastProbability` and the screen text; reword it with on-screen text, rerun.                             |
 | `action_failed`                                  | The app refused an action twice. Check for an overlay/permission prompt; clear it and resume.                                                                                                               |
 | `unreadable_screen`                              | No accessibility tree. Screenshot it; if it is a game/canvas screen, the flow needs a different path.                                                                                                       |

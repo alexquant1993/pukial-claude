@@ -73,6 +73,13 @@ the first launch; add `language-<tag>` flows that switch it in the app's setting
 naming text of the target language ("the language screen is titled Idioma"), and set
 `app.languageFlow: language-{locale}` so `run-all` switches the language before each language batch.
 
+Write language flows so they work from either starting language, and pass straight away when the target
+language is already selected ("If Español already shows a checkmark, go back to the Language screen and
+finish"); Waki's `language-es` / `language-en` in its dev map are the example. Their labels on the way
+depend on the language the app starts in, so the runner asks Jev once which of `app.locales` the first
+screen is in and keys the recording by it (`language-es-android-from-en.json`). A flow that changes the
+language without matching `app.languageFlow` can say so itself with `languageFlow: true`.
+
 ## Production data
 
 If flows run against production accounts, list every item they create and delete it afterwards.
