@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "pukial",
-      "description": "Every Pukial skill in one plugin: deckwright (idea -> spec -> HTML drafts on a design system -> PPTX or HTML deck, with a QA loop), ship-check (Flutter architecture gate), new-app (Flutter scaffolder), and aso-appstore-screenshots (App Store and Google Play screenshot pipeline), and app-pilot (fast mobile QA flows and screenshots with Jev + agent-device); ci-github-actions (CI within the account's Actions minutes, isolated self-hosted runner).",
+      "description": "Every Pukial skill in one plugin: deckwright (idea -> spec -> HTML drafts on a design system -> PPTX or HTML deck, with a QA loop), ship-check (Flutter architecture gate), new-app (Flutter scaffolder), aso-appstore-screenshots (App Store and Google Play screenshot pipeline), app-pilot (fast mobile QA flows and screenshots with Jev + agent-device), and ci-github-actions (CI within the account's Actions minutes, isolated self-hosted runner).",
       "version": "0.6.0",
       "source": "./",
       "author": {

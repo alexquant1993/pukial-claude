@@ -1,77 +1,86 @@
 ---
 name: ci-github-actions
 description: >-
-  Diseña, revisa y repara el CI de GitHub Actions de cualquier proyecto de Pukial para que no
-  agote los minutos de la cuenta ni deje parados otros repositorios. Úsala SIEMPRE que crees o
-  edites un archivo en .github/workflows/, cuando un workflow tarde mucho o se ejecute de más,
-  cuando GitHub avise de minutos o presupuesto agotados, cuando un workflow programado (cron)
-  deje de ejecutarse sin motivo aparente, o al montar un runner propio (self-hosted) en el R620
-  u otra máquina. Trigger: "CI", "GitHub Actions", "workflow", "minutos de GitHub", "se acabaron
-  los minutos", "spending limit", "self-hosted runner", "el CI tarda", "el cron de GitHub no
-  corre". No la uses para depurar un test concreto que falla (eso es depuración normal) ni para
-  CI que no sea GitHub Actions.
+  Design, review and repair a project's GitHub Actions CI so it does not burn the account's
+  Actions minutes or stall other repositories. Use it whenever you create or edit a file in
+  .github/workflows/, when a workflow is slow or runs more often than it should, when GitHub warns
+  that minutes or the spending budget ran out, when a scheduled (cron) workflow silently stops
+  running, or when setting up a self-hosted runner. Triggers: "CI minutes", "GitHub Actions",
+  "workflow", "out of minutes", "spending limit", "self-hosted runner", "CI is slow", "the cron
+  stopped running". Not for debugging one failing test (that is ordinary debugging) or for CI
+  systems other than GitHub Actions.
 ---
 
-# CI en GitHub Actions sin quemar la cuenta
+# GitHub Actions CI without burning the account
 
-Los minutos y el presupuesto de Actions son **de la cuenta, no del repositorio**. Cuando un repo
-los agota, GitHub para **todos** los workflows privados de esa cuenta, también los programados de
-otros productos. Precedente (octubre de 2026): el CI de pukial-flow consumió ~2.300 de los 2.000
-minutos gratis y los 12 USD de presupuesto. El motor SEO de Waki (crons en `waki-web`) se quedó sin
-botones de Telegram ni artículos, y además `main` llevaba un fallo real que nadie vio por el ruido.
+Actions minutes and the spending budget belong to the **account (user or organization), not the
+repository**. When one repo exhausts them, GitHub stops **every** private workflow on the account,
+including the scheduled ones that keep other products running. A typical failure: one product's CI
+runs every commit twice and uses up the month's minutes. Then another product's cron jobs, which
+publish content or send notifications, stop without any error in their own repo. And a real failure
+on `main` goes unnoticed in the noise.
 
-## Flujo
+## Flow
 
-1. **Medir antes de opinar.** Ejecuta el diagnóstico y lee el resultado:
-   `python3 -I scripts/diagnostico-ci.py OWNER/REPO --runs 200`
-   Da las ejecuciones por evento, rama y resultado, los commits probados más de una vez y los pasos
-   más lentos. Si hay varios repos en la cuenta, ejecútalo en todos: el problema es la suma.
-2. **Si los minutos ya están agotados**, sigue `references/emergencia.md` antes que nada: primero se
-   reactiva lo que da servicio a usuarios, después se arregla el CI.
-3. **Contrasta el workflow con las reglas** (abajo). Cada regla incumplida es un cambio concreto.
-4. **Fija las reglas con un test** que lea el YAML: un workflow sin test vuelve a degradarse en la
-   siguiente edición. Plantilla y test de ejemplo en `references/plantilla-workflow.md`.
-5. **Mira si `main` está en rojo** por un fallo real, no por los minutos. Arréglalo con un test que
-   lo habría detectado.
-6. **Runner propio** solo si, aplicadas las reglas, el CI sigue sin caber en el plan, o si hay
-   automatizaciones críticas que no deben depender de la cuota: `references/runner-propio.md`.
-7. **Documenta en el repo** (runbook con cifras medidas y el interruptor de vuelta) y anota el gasto
-   real en el ledger del proyecto si lo hay.
+1. **Measure before changing anything.** Run the diagnosis and read the output:
+   `python3 -I scripts/diagnose_ci.py OWNER/REPO --runs 200`
+   It shows runs per workflow, event, branch and result, commits tested more than once, and the
+   slowest steps. If the account has several private repos, run it on each: the quota is the sum.
+2. **If the minutes are already exhausted**, follow `references/emergency.md` first: restore what
+   serves users, then fix the CI.
+3. **Check the workflows against the rules** below. Each broken rule is one concrete change.
+4. **Pin the rules with a test** that reads the YAML. A workflow without a test degrades again on
+   the next edit. Template and example test in `references/workflow-template.md`.
+5. **Check whether `main` is red** for a real reason, not the quota. Fix it with a test that would
+   have caught it.
+6. **Self-hosted runner** only if the CI still does not fit the plan after the rules, or if critical
+   automations must not depend on the quota: `references/self-hosted-runner.md`.
+7. **Document it in the repo:** a runbook with the measured numbers and the fallback switch.
 
-## Reglas
+## Rules
 
-| # | Regla | Por qué |
+| # | Rule | Why |
 |---|---|---|
-| 1 | `push` solo en `main`; las ramas se prueban por `pull_request` | `push` a cualquier rama + `pull_request` prueba cada commit dos veces (43 % de los minutos en el precedente) |
-| 2 | `concurrency` con `cancel-in-progress` en los PR, con el grupo por número de PR | Varios push seguidos: solo importa el último. En `main` no se cancela, para que cada merge conserve su resultado |
-| 3 | Dos niveles: rápido en cada PR, completo (E2E, imagen Docker, demos de recuperación) en `main`, a mano o con una etiqueta (`ci-completo`) | El E2E y Docker suelen ser más de la mitad del tiempo y no hace falta repetirlos en cada push de una rama |
-| 4 | Filtro de rutas para la documentación, **con lista de reincluidos** | Los cambios de docs no deben lanzar 25 min de CI, **pero** si un test lee un `.md` (runbooks, YAML de definición), su cambio sí debe lanzarlo. Un `paths-ignore: '**/*.md'` ciego deja pasar roturas |
-| 5 | Un test que busque en el código las rutas de documentación que se leen y compruebe que el filtro las incluye | Así nadie puede romper la regla 4 en silencio al añadir un test nuevo |
-| 6 | `timeout-minutes` en cada job (≈2× la duración normal) | El límite por defecto son 6 h: un cuelgue se come la cuota de un mes |
-| 7 | Crons con la frecuencia que el negocio necesita, no más | Cada ejecución se redondea al minuto por job: un cron cada 5 min son ~8.600 min al mes |
-| 8 | Cachés (`setup-node` con `cache`, etc.) y nada de `apt-get` innecesario | Instalar paquetes del sistema llega a costar 10–19 min en un mal día del espejo |
-| 9 | Si el repo puede ser público, los runners estándar no consumen minutos | Es la palanca más barata, cuando procede |
-| 10 | Las automatizaciones que dan servicio (crons de producto) no comparten cuota con un CI pesado | O el CI pesado va a un runner propio, o el producto va a otra cuenta o runner |
+| 1 | `push` only on the default branch; branches are tested through `pull_request` | `push` on every branch plus `pull_request` tests each commit twice, often 40 % or more of all minutes |
+| 2 | `concurrency` with `cancel-in-progress` on PRs, grouped by PR number | After several quick pushes only the last one matters. Do not cancel on `main`, so every merge keeps its result |
+| 3 | Two tiers: fast on every PR, full (E2E, Docker image, slow suites) on `main`, on demand, or with a label | E2E and image builds are often more than half the time and rarely need to run on every branch push |
+| 4 | A docs path filter, **with re-included paths** | Docs-only changes should not start a 25-minute CI, **but** if a test reads a `.md` or another file under `docs/`, changing it must run the CI. A blind `paths-ignore: '**/*.md'` lets breakage through |
+| 5 | A test that finds the docs paths the code and tests read, and checks the filter re-includes them | So nobody can break rule 4 silently by adding a new test |
+| 6 | `timeout-minutes` on every job (≈2× its normal duration) | The default is 6 h: one hung job can eat a month's quota |
+| 7 | Crons only as often as the product needs | Each run is billed rounded up to the minute per job: a 5-minute cron is ~8,600 min a month |
+| 8 | Caches (`setup-node` with `cache`, etc.) and no unnecessary `apt-get` | Installing system packages can take 10–19 min when a mirror is slow |
+| 9 | If the repo can be public, standard GitHub-hosted runners are free | The cheapest lever, when it applies |
+| 10 | Automations that serve users (product crons) do not share a quota with heavy CI | Either the heavy CI moves to a self-hosted runner, or the product moves to another account or runner |
 
-### Errores conocidos
+### Known pitfalls
 
-- **Filtro de rutas:** los patrones se aplican en orden; uno con `!` excluye y uno positivo posterior
-  vuelve a incluir. Si se usa `paths` con `!`, el primero debe ser positivo (`'**'`).
-- **Anclas YAML** (`&rutas` / `*rutas`): no se puede contar con que el parser de Actions de esa cuenta
-  las admita. Repite la lista y comprueba con el test que `push` y `pull_request` coinciden.
-- **`labeled` en `pull_request.types`:** añadir cualquier etiqueta relanza el workflow. Pon
-  `if: github.event.action != 'labeled' || github.event.label.name == '<etiqueta>'` y la
-  `concurrency` **a nivel de job**, para que un evento descartado no cancele la ejecución en curso.
-- **Los minutos de reloj no son los facturados:** los de reloj incluyen la cola, y la facturación
-  redondea por job y multiplica macOS (×10) y Windows (×2). La cifra buena está en
-  *Settings → Billing → Usage*.
-- **Registrar un runner exige ser admin del repo**; una cuenta con solo push recibe 404 en la API
-  de runners.
+- **Path filter order:** patterns apply in order; a `!` pattern excludes and a later positive one
+  re-includes. When `paths` uses `!`, the first pattern must be positive (`'**'`).
+- **Required checks and path filters:** if the CI job is a required status check in branch
+  protection, a docs-only PR that the filter skips leaves the check "pending" forever and cannot
+  merge. Either let a tiny always-running job report the required check, or make the filtering
+  happen inside the job (a step that detects changed paths and exits early) instead of in `on:`.
+- **Path filters also gate `labeled`:** adding the full-CI label to a docs-only PR starts nothing.
+- **YAML anchors** (`&paths` / `*paths`): some parsers and older GitHub Enterprise Server versions
+  reject them. Repeating the list and asserting in the test that `push` and `pull_request` match
+  works everywhere.
+- **`labeled` in `pull_request.types`:** adding *any* label restarts the workflow. Add
+  `if: github.event.action != 'labeled' || github.event.label.name == '<label>'` and put
+  `concurrency` **at job level**, so a discarded event does not cancel the run in progress.
+- **Wall-clock minutes are not billed minutes:** wall-clock includes queue time, while billing
+  rounds up per job and multiplies macOS and Windows minutes (see GitHub's current billing docs).
+  The real number is in *Settings → Billing → Usage*.
+- **A cron that stops for other reasons:** schedules run only from the default branch, and in public
+  repos GitHub disables them after 60 days without repository activity. Rule those out before
+  blaming the quota.
+- **Registering a runner needs repo (or org) admin;** an account with push access gets 404 from
+  the runners API.
 
-## Qué no hacer
+## Do not
 
-- No subir el presupuesto como solución: compra tiempo, no arregla la causa.
-- No desactivar tests para ahorrar minutos. Lo que se recorta es **cuándo** se ejecutan.
-- No poner un runner propio en la máquina o el daemon Docker de producción: el CI ejecuta
-  `docker compose down --volumes` y código de terceros.
-- No afirmar ahorros sin decir que son una proyección; medir a final de mes.
+- Raise the budget as the fix: it buys time, it does not remove the cause. Spending is the owner's
+  decision, never the agent's.
+- Disable tests to save minutes. What you cut is **when** they run.
+- Put a self-hosted runner on a production host or its Docker daemon: CI runs
+  `docker compose down --volumes` and third-party code.
+- Claim savings without saying they are a projection; measure at the end of the billing cycle.
