@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
-"""Diagnose a repository's GitHub Actions usage.
+"""Diagnose GitHub Actions usage for one repository or a whole account.
 
 Run: python3 -I diagnose_ci.py OWNER/REPO [--runs 200] [--since YYYY-MM-DD] [--detail 5]
+     python3 -I diagnose_ci.py OWNER [--runs 200] [--since YYYY-MM-DD]
 
-Needs `gh` authenticated with read access to the repository. Read-only: it changes nothing.
+Needs `gh` authenticated with read access to the repositories. Read-only: it changes nothing.
 
-For the most recent runs it shows:
+With OWNER alone (a user or an organization) it lists every private, non-archived repository and
+prints one line each, heaviest first: minutes are shared across the account, so this shows which
+repo is eating them. Public repositories are skipped because standard runners are free there.
+
+With OWNER/REPO, for the most recent runs it shows:
   - how many there are per workflow, event, branch and result;
   - how many repeat a commit already tested (push + pull_request of the same SHA);
   - wall-clock duration (median and p90) and approximate minutes;
@@ -55,18 +60,67 @@ def table(title: str, counter: collections.Counter, top: int = 8) -> None:
         print(f"  {n:5d}  {key}")
 
 
+def load_runs(repo: str, limit: int, since: str | None) -> list[dict]:
+    fields = "databaseId,workflowName,event,headBranch,headSha,conclusion,createdAt,updatedAt"
+    runs = gh("run", "list", "-R", repo, "--limit", str(limit), "--json", fields) or []
+    return [r for r in runs if r["createdAt"] >= since] if since else runs
+
+
+def extra_runs(runs: list[dict]) -> tuple[int, list[int]]:
+    """Commits tested more than once by the same workflow, and the indexes of the extra runs.
+
+    Covers push + pull_request of the same SHA and repeated pushes. Runs are newest first: the
+    oldest is the needed one, the rest are extra.
+    """
+    groups: dict[tuple[str, str], list[int]] = collections.defaultdict(list)
+    for i, r in enumerate(runs):
+        groups[(r["workflowName"], r["headSha"])].append(i)
+    repeated = [idx for idx in groups.values() if len(idx) > 1]
+    return len(repeated), [i for idx in repeated for i in idx[:-1]]
+
+
+def report_account(owner: str, args: argparse.Namespace) -> None:
+    repos = gh("repo", "list", owner, "--visibility", "private", "--no-archived", "--limit", "500",
+               "--json", "nameWithOwner") or []
+    if not repos:
+        sys.exit(f"No private repositories visible for {owner}.")
+    rows = []
+    for repo in (r["nameWithOwner"] for r in repos):
+        runs = load_runs(repo, args.runs, args.since)
+        durations = [minutes(r["createdAt"], r["updatedAt"]) for r in runs]
+        _, extra = extra_runs(runs)
+        crons = sum(1 for r in runs if r["event"] == "schedule")
+        failed = sum(1 for r in runs if r["conclusion"] == "failure")
+        rows.append((sum(durations), sum(durations[i] for i in extra), len(runs), crons, failed, repo))
+    rows.sort(reverse=True)
+    total = sum(row[0] for row in rows)
+    window = f"since {args.since}" if args.since else f"last {args.runs} runs per repo"
+    active = sum(1 for row in rows if row[2])
+    print(f"Account {owner}: {len(rows)} private repos, {active} with runs ({window}), "
+          f"~{total:.0f} wall-clock min in all")
+    print(f"\n  {'~min':>6} {'share':>6} {'extra':>6} {'runs':>5} {'cron':>5} {'fail':>5}  repo")
+    for mins, extra_mins, n, crons, failed, repo in rows:
+        if not n:
+            continue
+        print(f"  {mins:6.0f} {100 * mins / max(total, 1):5.0f}% {extra_mins:6.0f} {n:5d} {crons:5d} {failed:5d}  {repo}")
+    print('\n"extra" = minutes spent re-testing a commit already tested. "cron" runs are the ones that stop\n'
+          "first when the quota runs out. Next: run this script with OWNER/REPO on the heaviest repo.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("repo", help="OWNER/REPO")
-    parser.add_argument("--runs", type=int, default=200, help="runs to read (max 1000)")
+    parser.add_argument("target", help="OWNER/REPO for one repository, or OWNER for every private repo")
+    parser.add_argument("--runs", type=int, default=200, help="runs to read per repo (max 1000)")
     parser.add_argument("--since", help="only runs created on or after this date (YYYY-MM-DD)")
     parser.add_argument("--detail", type=int, default=5, help="recent runs to break down by step")
     args = parser.parse_args()
 
-    fields = "databaseId,workflowName,event,headBranch,headSha,conclusion,createdAt,updatedAt"
-    runs = gh("run", "list", "-R", args.repo, "--limit", str(args.runs), "--json", fields) or []
-    if args.since:
-        runs = [r for r in runs if r["createdAt"] >= args.since]
+    if "/" not in args.target:
+        report_account(args.target, args)
+        return
+    args.repo = args.target
+
+    runs = load_runs(args.repo, args.runs, args.since)
     if not runs:
         sys.exit("No runs in the requested range.")
 
@@ -90,14 +144,9 @@ def main() -> None:
     table("By branch", collections.Counter(r["headBranch"] or "?" for r in runs))
     table("By result", collections.Counter(r["conclusion"] or "in progress" for r in runs))
 
-    # The same commit tested more than once by the same workflow (push + pull_request,
-    # repeated pushes). Runs are newest first: the oldest is the needed one, the rest are extra.
-    groups: dict[tuple[str, str], list[int]] = collections.defaultdict(list)
-    for i, r in enumerate(runs):
-        groups[(r["workflowName"], r["headSha"])].append(i)
-    extra = [i for idx in groups.values() if len(idx) > 1 for i in idx[:-1]]
+    repeated, extra = extra_runs(runs)
     extra_minutes = sum(durations[i] for i in extra)
-    print(f"\nCommits tested more than once: {sum(1 for v in groups.values() if len(v) > 1)}; "
+    print(f"\nCommits tested more than once: {repeated}; "
           f"extra runs {len(extra)} (~{extra_minutes:.0f} min, "
           f"{100 * extra_minutes / max(sum(durations), 1):.0f} %)")
 

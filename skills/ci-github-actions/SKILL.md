@@ -6,7 +6,7 @@ description: >-
   .github/workflows/, when a workflow is slow or runs more often than it should, when GitHub warns
   that minutes or the spending budget ran out, when a scheduled (cron) workflow silently stops
   running, or when setting up a self-hosted runner. Triggers: "CI minutes", "GitHub Actions",
-  "workflow", "out of minutes", "spending limit", "self-hosted runner", "CI is slow", "the cron
+  "GitHub workflow", "out of minutes", "spending limit", "self-hosted runner", "CI is slow", "the cron
   stopped running". Not for debugging one failing test (that is ordinary debugging) or for CI
   systems other than GitHub Actions.
 ---
@@ -20,12 +20,21 @@ runs every commit twice and uses up the month's minutes. Then another product's 
 publish content or send notifications, stop without any error in their own repo. And a real failure
 on `main` goes unnoticed in the noise.
 
-## Flow
+## Just writing or editing a workflow
 
-1. **Measure before changing anything.** Run the diagnosis and read the output:
-   `python3 -I scripts/diagnose_ci.py OWNER/REPO --runs 200`
-   It shows runs per workflow, event, branch and result, commits tested more than once, and the
-   slowest steps. If the account has several private repos, run it on each: the quota is the sum.
+No investigation needed. Write it against the rules below, starting from
+`references/workflow-template.md` (structure, label handling, fallback runner switch and the test
+that pins the rules). If the repo already has a test for its workflow, update it in the same change.
+Run the full flow only when the question is about usage, slowness or the quota.
+
+## Investigating usage, slowness or an exhausted quota
+
+1. **Measure before changing anything.** Start with the whole account, since the quota is the sum
+   of every private repo, then drill into the heaviest one:
+   `python3 -I scripts/diagnose_ci.py OWNER --since YYYY-MM-DD` (every private repo, one line each)
+   `python3 -I scripts/diagnose_ci.py OWNER/REPO --runs 200` (one repo in detail)
+   The detail shows runs per workflow, event, branch and result, commits tested more than once, and
+   the slowest steps. Use the start of the billing cycle as `--since` to compare like with like.
 2. **If the minutes are already exhausted**, follow `references/emergency.md` first: restore what
    serves users, then fix the CI.
 3. **Check the workflows against the rules** below. Each broken rule is one concrete change.
@@ -41,7 +50,7 @@ on `main` goes unnoticed in the noise.
 
 | # | Rule | Why |
 |---|---|---|
-| 1 | `push` only on the default branch; branches are tested through `pull_request` | `push` on every branch plus `pull_request` tests each commit twice, often 40 % or more of all minutes |
+| 1 | `push` only on the default branch; branches are tested through `pull_request` | `push` on every branch plus `pull_request` tests each commit twice, 43 % of all minutes in one measured case |
 | 2 | `concurrency` with `cancel-in-progress` on PRs, grouped by PR number | After several quick pushes only the last one matters. Do not cancel on `main`, so every merge keeps its result |
 | 3 | Two tiers: fast on every PR, full (E2E, Docker image, slow suites) on `main`, on demand, or with a label | E2E and image builds are often more than half the time and rarely need to run on every branch push |
 | 4 | A docs path filter, **with re-included paths** | Docs-only changes should not start a 25-minute CI, **but** if a test reads a `.md` or another file under `docs/`, changing it must run the CI. A blind `paths-ignore: '**/*.md'` lets breakage through |
