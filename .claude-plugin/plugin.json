@@ -1,7 +1,7 @@
 {
   "name": "pukial",
-  "version": "0.7.0",
-  "description": "Pukial skills for Claude Code, one plugin across domains: deckwright turns an idea into a slide deck (binding spec, HTML drafts on a design system, native editable PPTX or printable HTML deck, QA loop); ship-check is the Flutter architecture gate (review -> triage -> fix -> recommend); new-app scaffolds a com.pukial Flutter app from flutter-pukial-starter; aso-appstore-screenshots produces conversion-focused App Store and Google Play screenshot decks; app-pilot drives iOS/Android apps for fast QA flows and screenshots (Jev + agent-device, Claude on handoffs); ci-github-actions keeps GitHub Actions CI within the account's minutes (diagnosis, rules guarded by tests, emergency playbook, isolated self-hosted runner); find-skills searches the open skills ecosystem and recommends skills only after a security review (skills.sh audits plus a read of the SKILL.md), never installing without approval.",
+  "version": "0.8.0",
+  "description": "Pukial skills for Claude Code, one plugin across domains: deckwright turns an idea into a slide deck (binding spec, HTML drafts on a design system, native editable PPTX or printable HTML deck, QA loop); ship-check is the Flutter architecture gate (review -> triage -> fix -> recommend); new-app scaffolds a com.pukial Flutter app from flutter-pukial-starter; aso-appstore-screenshots produces conversion-focused App Store and Google Play screenshot decks; app-pilot drives iOS/Android apps for fast QA flows and screenshots (Jev + agent-device, Claude on handoffs); ci-github-actions keeps GitHub Actions CI within the account's minutes (diagnosis, rules guarded by tests, emergency playbook, isolated self-hosted runner); find-skills searches the open skills ecosystem and recommends skills only after a security review (skills.sh audits plus a read of the SKILL.md), never installing without approval; reverse-engineer-anything drives the REA MCP server (rea-agents) to reverse engineer native, managed, Electron/JavaScript, Android, firmware and browser targets with evidence, pinned and limited to authorized targets.",
   "author": {
     "name": "Anderson Arroyo",
     "email": "a.arroyo@pucp.pe"
@@ -33,7 +33,11 @@
     "devops",
     "find-skills",
     "skill-discovery",
-    "supply-chain-security"
+    "supply-chain-security",
+    "reverse-engineering",
+    "rea",
+    "binary-analysis",
+    "decompilation"
   ],
   "skills": "./skills/"
 }
