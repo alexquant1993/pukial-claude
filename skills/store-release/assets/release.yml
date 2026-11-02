@@ -1,0 +1,80 @@
+# Store release settings, read by fastlane/Fastfile and fastlane/Appfile.
+# This file holds no secrets: commit it. Credentials stay outside the repo,
+# at the paths listed under "credentials".
+# Paths are relative to the repo root unless they start with / or ~.
+
+# Platforms this app ships to. Remove one to switch its lanes off.
+platforms: [android, ios]
+
+# Branch a release must be cut from. It must be clean and equal to origin.
+release_branch: main
+
+flutter:
+  # Command that runs Flutter and Dart. Use "fvm flutter" / "fvm dart" when the repo has .fvmrc.
+  command: fvm flutter
+  dart_command: fvm dart
+  # Flavor and entry point of the release build. Leave both empty only when the app does not pick its
+  # environment at build time. If the app reads appFlavor (or similar) and has no native production
+  # flavor, a build without a flavor falls back to the default environment, usually development.
+  flavor: production
+  target: lib/main_production.dart
+  # Extra arguments for flutter build, e.g. ["--dart-define=API_URL=https://api.example.com"].
+  extra_args: []
+
+# Where the debug symbols and the obfuscation map of every release are archived, as
+# <symbols_dir>/<version>+<build>/<android|ios>. Keep it outside the repo and outside build/,
+# because "flutter clean" deletes build/ and you need these files to read old crashes.
+symbols_dir: ~/release-symbols/my_app
+
+credentials:
+  # Created once by hand (references/console-setup.md). Never inside the repo.
+  play_key: ~/.secure_credentials/my_app-play-service-account.json
+  asc_key_info: ~/.secure_credentials/my_app-asc-api-key.json   # {"key_id": "...", "issuer_id": "..."}
+  asc_key_p8: ~/.secure_credentials/my_app-asc-api-key.p8
+  sentry_token: ~/.secure_credentials/my_app-sentry-auth-token  # SENTRY_AUTH_TOKEN wins when set.
+
+android:
+  application_id: com.example.my_app
+  # Where "flutter build appbundle" writes the bundle. With a flavor named production it is
+  # build/app/outputs/bundle/productionRelease/app-production-release.aab, without one
+  # build/app/outputs/bundle/release/app-release.aab.
+  aab: build/app/outputs/bundle/productionRelease/app-production-release.aab
+  # Upload key settings. Only checked for existence, never read. Empty skips the check
+  # (for signing that is configured some other way).
+  key_properties: android/key.properties
+  # Tracks whose version codes are read to pick the next build number. Add custom or closed
+  # testing tracks here, or their codes are not seen and an upload can be rejected late.
+  tracks: [internal, alpha, beta, production]
+  # Percent of users a production release reaches when ROLLOUT is not given (1-100).
+  default_rollout: 20
+  # Google Play language => file with "## [<version>]" sections. Empty means no release notes.
+  notes:
+    en-US: RELEASE_NOTES.md
+  notes_limit: 500   # Google Play's limit per language.
+  # Resource names that must still be in the bundle after the release shrinker ran.
+  # Add default_web_client_id when the app uses google_sign_in. Empty skips the check.
+  required_resources: []
+
+ios:
+  bundle_id: com.example.myApp
+  team_id: ABCDE12345
+  # Where "flutter build ipa" writes the .ipa.
+  ipa_dir: build/ios/ipa
+  # Must have a "## [<version>]" section (TestFlight notes are written in App Store Connect).
+  # Empty skips the check.
+  notes_file: RELEASE_NOTES.md
+
+sentry:
+  # false skips every Sentry step: no symbol upload, no token check.
+  enabled: true
+  org: my-org
+  project: my-project
+  # Empty means https://sentry.io. Set it for a regional host, e.g. https://de.sentry.io.
+  url: ""
+  # What to tell Sentry about commits. "false" always works. "auto" needs a repository linked to the
+  # Sentry org (Settings, Integrations) and errors without one; use it once a repo is linked.
+  commits: "false"
+  # Do not fail the upload on a missing release commit.
+  ignore_missing: true
+  # These values are passed to sentry_dart_plugin on the command line, so they win over any
+  # sentry: block in pubspec.yaml.

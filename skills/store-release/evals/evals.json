@@ -1,0 +1,23 @@
+{
+  "skill_name": "store-release",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I just scaffolded a new app from flutter-pukial-starter at /Users/me/projects/trail_notes (com.pukial.trail_notes). I want to release it to Google Play internal testing and TestFlight from my terminal instead of clicking through the consoles. Set it up. I haven't created any API keys yet.",
+      "expected_output": "Inspects the repo first (Android id com.pukial.trail_notes, iOS id com.pukial.trailNotes, .fvmrc, sentry_flutter present) and runs the mandatory environment check: lib/config/flavor.dart reads appFlavor and falls back to development, while the project has no native flavors and only lib/main.dart. Stops before installing anything and explains in plain words that a store build would use the development settings and banner. Offers the two ways out (add native flavors, or make the release build select production) without changing the app's code unless asked, then asks which the user prefers. Does not create fastlane files, does not run any lane, and does not ask for or read credentials yet.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Our Flutter app (com.acme.shop, flavors development and production, entry points lib/main_development.dart and lib/main_production.dart, fvm, sentry_flutter with sentry_dart_plugin, EU Sentry region, google_sign_in) is currently built by hand and uploaded in the Play Console. Crashes in Sentry are not symbolicated. Add fastlane so I can run make release-android and make release-ios, and make the Sentry stack traces readable. Release notes are in RELEASE_NOTES.md and RELEASE_NOTES_ES.md.",
+      "expected_output": "Runs the environment check (the flavors map to production, so it passes), detects the flavors and entry points and sets flavor: production and target: lib/main_production.dart with the flavored AAB path. Reads the Sentry org and project from pubspec and sets the regional sentry.url. Sets required_resources to default_web_client_id because of google_sign_in and warns about any app-level res/raw/keep.xml. Maps the two notes files to Play languages. Configures the Sentry release as <id>@<version>+<build> with dist and uploads symbols plus the obfuscation map, with the token only through SENTRY_AUTH_TOKEN. Installs the generic Fastfile unchanged, verifies read-only with make release-check, and tells the user that store uploads are theirs to run. Leaves an existing sentry: block in pubspec.yaml alone and says the release.yml values win over it; sets sentry.commits to false.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I have a small Flutter app, Android and iOS, no flavors, no Sentry, no Google sign-in, just a single lib/main.dart and no fvm. I want make commands to push builds to Google Play and TestFlight. There's already a Makefile with a run and a test target and a stale fastlane/Fastfile from a tutorial I abandoned. Can you set that up?",
+      "expected_output": "Runs the environment check on lib/ first and proceeds only because the app has no build-time environment choice (it would stop otherwise). Looks at the existing fastlane files before copying, notices the existing fastlane/Fastfile and does not overwrite it silently: shows the difference, keeps a backup and asks. Sets sentry.enabled to false and drops the Sentry keys, leaves required_resources empty and the flavor and target empty, uses plain flutter and dart commands and the unflavored AAB path. Merges the release targets into the existing Makefile without breaking run and test. Verifies with ruby -c, fastlane lanes and make release-check, confirms that nothing Sentry-related runs, and does not run any release or rollout lane.",
+      "files": []
+    }
+  ]
+}
