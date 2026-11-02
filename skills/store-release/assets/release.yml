@@ -48,6 +48,8 @@ android:
   # Percent of users a production release reaches when ROLLOUT is not given (1-100).
   default_rollout: 20
   # Google Play language => file with "## [<version>]" sections. Empty means no release notes.
+  # Each code must be a language enabled on the Play store listing (es-ES is not es-419);
+  # "make release-check" compares them with the listing.
   notes:
     en-US: RELEASE_NOTES.md
   notes_limit: 500   # Google Play's limit per language.

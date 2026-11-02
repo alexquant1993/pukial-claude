@@ -137,6 +137,45 @@ def flavor_warning
   "flutter.flavor is empty but the app reads appFlavor: a build without a flavor falls back to the app's default environment (often development, with its keys). Add a native production flavor, or make sure the release build selects production"
 end
 
+PLACEHOLDER_IDS = [/\Acom\.example\./, /\Acom\.pukial\.flutter_?[Pp]ukial_?[Ss]tarter/].freeze
+
+# An id is permanent once a build is uploaded, so a template id must be replaced before the first upload.
+def placeholder_id?(id)
+  PLACEHOLDER_IDS.any? { |pattern| id.to_s.match?(pattern) }
+end
+
+# iOS asks a manual "Missing Compliance" question for every build until this key is in Info.plist.
+def export_compliance_warning
+  plist = File.join(ROOT, "ios/Runner/Info.plist")
+  return nil unless File.file?(plist) && !File.read(plist).include?("ITSAppUsesNonExemptEncryption")
+
+  "ios/Runner/Info.plist has no ITSAppUsesNonExemptEncryption: every TestFlight build waits for a manual 'Missing Compliance' answer. It is a legal declaration (false fits apps that only use standard HTTPS and OS encryption); add it only once you have confirmed that"
+end
+
+# The release buildType must sign with the upload key. Flutter's template signs release with the debug key.
+def debug_signing_warning
+  file = %w[android/app/build.gradle.kts android/app/build.gradle].map { |name| File.join(ROOT, name) }.find { |path| File.file?(path) }
+  return nil unless file
+
+  text = File.read(file)
+  from = text.index(/buildTypes\s*\{/)
+  start = from && text.index(/\brelease\s*\{/, from)
+  return nil unless start
+
+  depth = 0
+  body = +""
+  text[start..].each_char do |char|
+    depth += 1 if char == "{"
+    depth -= 1 if char == "}"
+    body << char
+    break if depth.zero? && body.include?("{")
+  end
+  lines = body.lines.select { |line| line.include?("signingConfig") && !line.strip.start_with?("//") }
+  return nil if lines.any? { |line| line.include?("release") } || (lines.any? && lines.none? { |line| line.include?("debug") })
+
+  "#{File.basename(file)}: the release build type has #{lines.empty? ? 'no signing config' : 'the debug signing config'}, so the AAB would be signed with the Android Debug key and Play would reject it. Create an upload keystore and android/key.properties and give release a signingConfig that reads it"
+end
+
 def flutter_build(target, platform)
   FileUtils.mkdir_p(symbols_dir(platform))
   command = setting("flutter.command").split
@@ -260,6 +299,34 @@ def read_play_codes
     [track, []]
   end
   [codes, failures]
+end
+
+# Languages of the store listing. It opens an edit only to read it and always deletes it, so nothing is
+# committed. download_from_play_store would also fetch every screenshot.
+def play_listing_languages
+  client = Supply::Client.make_from_config(params: { json_key: play_key, timeout: 30 })
+  client.begin_edit(package_name: store_id("android"))
+  begin
+    client.listings.map(&:language).map(&:to_s).sort
+  ensure
+    begin
+      client.abort_current_edit
+    rescue StandardError => e
+      UI.important("Could not delete the read-only Play edit: #{one_line(e.message)}")
+    end
+  end
+end
+
+# Messages for the android.notes languages the store listing does not have, and the listing languages.
+def play_listing_mismatches
+  languages = (optional("android.notes") || {}).keys.map(&:to_s)
+  return [[], []] if languages.empty?
+
+  listed = play_listing_languages
+  messages = (languages - listed).map do |code|
+    "Google Play has no #{code} listing; it has: #{listed.empty? ? 'none yet' : listed.join(', ')}. Fix the key in android.notes (release.yml)"
+  end
+  [messages, listed]
 end
 
 def play_hints(failures)
@@ -411,6 +478,14 @@ platform :android do
     require_file(File.expand_path(key_properties, ROOT), "the Android upload key settings") if key_properties
 
     # Everything the late steps need is resolved before the build, which takes minutes.
+    # A notes language the listing does not have would fail the upload after the build.
+    begin
+      mismatches, = play_listing_mismatches
+    rescue StandardError => e
+      UI.important("Could not read the Play listing languages, continuing: #{one_line(e.message)}")
+      mismatches = []
+    end
+    UI.user_error!(mismatches.join("\n")) unless mismatches.empty?
     preflight_sentry
     setting("flutter.command")
     symbols_dir("android")
@@ -556,6 +631,17 @@ lane :check do
       else
         failures.each { |failure| warnings << "Google Play track skipped, #{failure}" }
         codes.each { |track, list| UI.message("Google Play #{track}: #{list.empty? ? 'no builds' : list.sort.reverse.join(', ')}") }
+        notes_languages = (optional("android.notes") || {}).keys.map(&:to_s)
+        unless notes_languages.empty?
+          begin
+            messages, listed = play_listing_mismatches
+            UI.message("Google Play listing languages: #{listed.empty? ? 'none' : listed.join(', ')}")
+            problems.concat(messages)
+            UI.message("Listing languages without a notes file: #{(listed - notes_languages).join(', ')}") unless (listed - notes_languages).empty?
+          rescue StandardError => e
+            warnings << "Could not read the Play listing languages: #{first_line.call(e)}"
+          end
+        end
         highest = codes.values.flatten.max.to_i
         if version && codes["internal"].to_a.include?(build)
           UI.message("Local build #{build} is on Google Play internal: a production run promotes it")
@@ -615,6 +701,11 @@ lane :check do
   end
   flavor = flavor_warning
   warnings << flavor if flavor
+  { "android.application_id" => android, "ios.bundle_id" => ios }.each do |key, on|
+    id = optional(key)
+    warnings << "#{key} is #{id}, a template id: ids are permanent once a build is uploaded, so set the final one first" if on && id && placeholder_id?(id)
+  end
+  [(export_compliance_warning if ios), (debug_signing_warning if android)].compact.each { |warning| warnings << warning }
   begin
     check_git(fetch: false)
   rescue StandardError => e

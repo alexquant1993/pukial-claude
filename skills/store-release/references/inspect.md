@@ -16,12 +16,34 @@ Read these before asking the user anything. Every value found here is one questi
 | Sentry | `pubspec.yaml`: `sentry_flutter`, `sentry_dart_plugin`, a `sentry:` block (`org`, `project`) | The plugin may be missing: add it as a dev dependency (`<dart> pub add --dev sentry_dart_plugin`). Region: look for a `de.sentry.io` or `us.sentry.io` host in the block or in the DSN setup. If the app sets `options.release` or `options.dist` itself, the release name in `release.yml` must match it. |
 | Google sign-in | `pubspec.yaml`: `google_sign_in`; Firebase Auth with Google | Yes: `required_resources: [default_web_client_id]`. Also list `ls android/app/src/main/res/raw/` and warn when an app-level `keep.xml` exists (see `lessons.md`, bundle check). |
 | Other resources looked up by name | notification icon packages (`awesome_notifications`, `flutter_local_notifications`) | Add the drawable names they load by string to `required_resources`. |
-| Release notes | `ls RELEASE_NOTES*.md CHANGELOG*.md`; top `## [x.y.z]` headings | One file per Play language. Language hints: `l10n.yaml`, `lib/l10n/*.arb`. Map to Play codes (`en-US`, `es-ES`, `es-419`). |
+| Release notes | `ls RELEASE_NOTES*.md CHANGELOG*.md`; top `## [x.y.z]` headings | One file per Play language. Language hints: `l10n.yaml`, `lib/l10n/*.arb`. Play codes are only a suggestion until the user confirms them against the store listing. |
 | Upload key | `[ -f android/key.properties ]`, `signingConfigs` in the gradle file | Existence only. Missing is fine for `release-check`, fatal for a real build. |
 | Current version | `pubspec.yaml`: `version: x.y.z+n` | Must have both parts. |
 | Branch | `git rev-parse --abbrev-ref HEAD`, `git symbolic-ref refs/remotes/origin/HEAD` | Default `release_branch` is the repo's default branch. |
 | Tools | `command -v fastlane ruby keytool unzip curl` | Missing fastlane: `brew install fastlane`. Missing keytool: a JDK (Android Studio ships one). |
 | Existing setup | `ls fastlane Gemfile`; `grep -n fastlane Makefile` | Never overwrite silently. See SKILL.md, "Existing fastlane". |
+
+## Flag before installing
+
+Three findings the user has to decide on, because they are permanent or block every upload. Say what you
+found in plain words, explain why, and change app files only if they agree. `check` warns about each of
+them too.
+
+- **Placeholder app ids.** An application id or bundle id is permanent once a build is uploaded. Flag
+  `com.example.*`, the starter's `com.pukial.flutter_pukial_starter` and `com.pukial.flutterPukialStarter`,
+  and any id whose last part is the default project name. Ask for the final ids before writing
+  `release.yml`; changing them is a rename across gradle, Xcode and Firebase, so it is theirs to approve.
+- **iOS export compliance.** If `ios/Runner/Info.plist` has no `ITSAppUsesNonExemptEncryption`, every
+  TestFlight build waits on a manual "Missing Compliance" answer. The key is a legal declaration: `false`
+  is right for apps that only use standard HTTPS and the OS's own encryption, and wrong for apps with their
+  own cryptography. Explain that and offer to add it only after they confirm.
+- **Release signed with the debug key.** In `android/app/build.gradle(.kts)`, look at the `release`
+  buildType. Flutter's template has `signingConfig = signingConfigs.getByName("debug")`; no signing config at
+  all is the same problem. Play rejects such a bundle, and the Fastfile refuses it as a last line of defence.
+  The app needs an upload keystore, `android/key.properties` and a release `signingConfig` that reads it.
+  Offer to wire a config that reads `key.properties` and falls back to debug only when the file is missing
+  (so `flutter run --release` still works), and edit gradle only if they agree. They create the keystore and
+  the file; you never read `key.properties`.
 
 ## Environment gate (mandatory)
 
@@ -44,9 +66,13 @@ fallback in `lib/config/flavor.dart`.
 
 Ask only for these, all in one message, with the detected value as the default where there is one:
 
+- The final app ids, when the detected ones are placeholders (see above).
+- The Play listing languages. The codes in `android.notes` must match the languages enabled on the store
+  listing (Play Console, Grow users, Store presence, Store listings / Manage translations). The repo cannot
+  tell, so show the notes files you found and the likely codes as a suggestion and ask. Never assume a
+  regional variant: `es-ES` and `es-419` are different listings.
 - Where to archive the symbols (a folder outside the repo, for example `~/release-symbols/<app>`).
 - The Sentry org and project slugs, when they are not in `pubspec.yaml`.
-- The Play languages and their notes files, when more than one language ships.
 - Credential file names, when the user wants something other than `<app>-play-service-account.json`,
   `<app>-asc-api-key.json` and `.p8`, `<app>-sentry-auth-token` under `~/.secure_credentials/`.
 - Which of Android and iOS ship.

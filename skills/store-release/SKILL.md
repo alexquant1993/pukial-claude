@@ -48,8 +48,13 @@ difference, keep their `release.yml`, and replace the Fastfile only after they a
 
 Read `references/inspect.md` and collect: Android applicationId, iOS bundle id and team id, flavors and
 entry points, fvm, Sentry (dependencies, org, project, region, an existing `sentry:` block), Google
-sign-in, release-notes files and Play languages, whether `android/key.properties` exists (existence
+sign-in, release-notes files, whether `android/key.properties` exists (existence
 only), the `pubspec.yaml` version, the release branch, and any fastlane files already there.
+
+Also flag, before writing anything (detection and wording in `references/inspect.md`, "Flag before
+installing"): placeholder app ids, a release build signed with the debug key, and a missing iOS export
+compliance key. Each is permanent or blocks every upload, so tell the user and let them decide. Change
+the app's code only if they agree.
 
 ### 2. Check how the app picks its environment (mandatory)
 
@@ -87,9 +92,15 @@ look before assuming.
 
 ### 3. Ask only what the repo cannot tell
 
-One message, defaults filled in, covering what `references/inspect.md` lists as unknowable: where to
-archive the symbols, Sentry slugs, Play languages, credential file names, which platforms ship, and
-whether the app already exists in both stores. If it is missing from a store, say that the first upload
+One message, defaults filled in, covering what `references/inspect.md` lists as unknowable: the final app
+ids when the current ones are placeholders, where to archive the symbols, Sentry slugs, credential file
+names, which platforms ship, whether the app already exists in both stores, and the **Play listing
+languages**. The language codes in `android.notes` must match those enabled on the store listing, which the
+repo cannot tell: show the notes files you found and the likely codes as a suggestion and ask. Never assume
+a regional variant (`es-ES` versus `es-419`); a wrong code fails the upload. Write only the codes the user
+confirmed. Leave a notes file whose code is unconfirmed commented out in `release.yml` with
+`# confirm the Play language code`, instead of a guess. `make release-check` later compares the codes with
+the real listing. If it is missing from a store, say that the first upload
 needs the console (`references/console-setup.md`) and continue with the other parts.
 
 ### 4. Install
@@ -138,12 +149,18 @@ token. One store at a time, wait for "done". The user creates the files and move
 ```bash
 ruby -c fastlane/Fastfile
 LC_ALL=en_US.UTF-8 FASTLANE_SKIP_UPDATE_CHECK=1 FASTLANE_OPT_OUT_USAGE=YES fastlane lanes
-make release-check
 ```
+
+Before `make release-check`, see which credential files from `release.yml` already exist (`[ -f path ]`,
+never open them). The default names can match real keys the user made earlier, and the check would use
+them without anyone noticing. If any exist, say in plain words: "release-check will use these keys to read
+build numbers from Google Play, App Store Connect and Sentry. It is read-only and publishes nothing." Wait
+for an OK, then run `make release-check`. If none exist, run it: it fails locally without any network.
 
 Expect the lanes `check`, `android release`, `android rollout`, `ios release` (fewer when a platform is
 off). `release-check` lists every problem at once (missing release.yml values, credentials, tools, the
-Play and TestFlight build numbers, the Sentry token, notes over the Play limit) and prints warnings for
+Play and TestFlight build numbers, the Play listing languages against `android.notes`, the Sentry token,
+notes over the Play limit) and prints warnings for
 things a release needs fixed (git state, symbols inside the repo, flavor). It changes nothing.
 
 Before step 5 is done it fails naming the missing files: report that as "waiting for the console setup",

@@ -43,4 +43,5 @@ One-time setup (`brew install fastlane`, then the keys below in `~/.secure_crede
 - **Sentry**: save the auth token used by `sentry_dart_plugin` as
   `<SENTRY_TOKEN_FILE>`, or export `SENTRY_AUTH_TOKEN`, which wins when set.
 
-Run `make release-check` after the setup: it reads the keys, the stores and Sentry and changes nothing.
+Run `make release-check` after the setup. It reads from the stores with your keys (build numbers from Google
+Play and App Store Connect, the Sentry project) and changes nothing: nothing is published, built or edited.

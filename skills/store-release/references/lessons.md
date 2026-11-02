@@ -127,10 +127,27 @@ store build with development keys and banner. The Fastfile cannot know every app
 checks it at setup (SKILL.md, step 2), and `check` and the release lanes warn when `flutter.flavor` is
 empty and the code reads `appFlavor`.
 
+## Before the first build
+
+- **Ask before the first `check`.** Default credential names can match real keys already on the machine,
+  and `check` reads Play, App Store Connect and Sentry with them. The skill lists which files exist and waits
+  for an OK first.
+- **Play language codes.** Notes are uploaded per listing language, and a code that is not enabled on the
+  listing fails the upload, after the long build. `es-ES` and `es-419` are different, a guess went wrong in
+  a real run, so the user confirms the codes and `check` compares them with the listing read from Play. `android release` repeats the comparison before the build on the upload path (not when promoting, which sends no notes): a missing code fails the lane, an unreadable listing only warns.
+- **Placeholder ids.** An application id or bundle id cannot change after the first upload, so a template
+  id (`com.example.*`, the starter's) is replaced first.
+- **Export compliance.** Without `ITSAppUsesNonExemptEncryption` each TestFlight build waits for a manual
+  "Missing Compliance" answer. It is a legal declaration, so only the user decides its value.
+- **Debug signing.** Flutter's template signs release with the debug key. The skill flags it at setup and
+  `check` warns, and the AAB signer check stays as the last line of defence.
+
 ## `release-check` is read-only
 
-It reads files, version codes, the TestFlight build number and (with a request) the Sentry project. It
-never builds, uploads, promotes, fetches or edits anything, so it is safe to run during setup and before
+It reads files, version codes, the listing languages, the TestFlight build number and (with a request) the
+Sentry project. The listing is read through a Play edit that is opened only to read and always deleted,
+never committed (`download_from_play_store` would also download every screenshot). It never builds,
+uploads, promotes, fetches or edits anything, so it is safe to run during setup and before
 every release. It lists all the problems it finds, not only the first, and exits non-zero when something
 blocks a release. Git state, symbols inside the repo and flavor are warnings, because they are fixed
 right before releasing.
