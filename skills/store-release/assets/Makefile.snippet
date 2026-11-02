@@ -1,0 +1,24 @@
+
+# Store releases through fastlane (settings in fastlane/release.yml; one-time setup: README, Releasing).
+# make release-check                                              (read-only: credentials, store build numbers)
+# make release-android TRACK=internal
+# make release-android TRACK=production ROLLOUT=100 CONFIRM=yes  (ROLLOUT in %, default from release.yml; promotes the internal build)
+# make release-rollout PERCENT=50 CONFIRM=yes
+# make release-ios                                               (TestFlight)
+# CONFIRM only counts when typed on the command line, so an exported CONFIRM in the shell cannot confirm a production run.
+# SKIP_BUILD=true reuses the last build, e.g. to retry a failed upload.
+FASTLANE=LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 FASTLANE_SKIP_UPDATE_CHECK=1 FASTLANE_OPT_OUT_USAGE=YES fastlane
+
+.PHONY: release-check release-android release-rollout release-ios
+
+release-check:
+	$(FASTLANE) check
+
+release-android:
+	$(FASTLANE) android release track:$(TRACK) $(if $(ROLLOUT),rollout:$(ROLLOUT)) $(if $(filter command line,$(origin CONFIRM)),confirm:$(CONFIRM)) $(if $(SKIP_BUILD),skip_build:$(SKIP_BUILD))
+
+release-rollout:
+	$(FASTLANE) android rollout percent:$(PERCENT) $(if $(filter command line,$(origin CONFIRM)),confirm:$(CONFIRM))
+
+release-ios:
+	$(FASTLANE) ios release $(if $(SKIP_BUILD),skip_build:$(SKIP_BUILD))

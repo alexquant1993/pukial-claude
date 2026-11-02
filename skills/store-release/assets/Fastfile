@@ -1,0 +1,718 @@
+# Store releases: build, upload the symbols to Sentry, send the build to the store.
+# Generic: every app-specific value is read from fastlane/release.yml. Run through make:
+#   make release-check                                              (read-only)
+#   make release-android TRACK=internal
+#   make release-android TRACK=production ROLLOUT=20 CONFIRM=yes   (promotes the internal build when it is there)
+#   make release-rollout PERCENT=50 CONFIRM=yes
+#   make release-ios
+require "fileutils"
+require "json"
+require "open3"
+require "yaml"
+
+opt_out_usage
+skip_docs
+default_platform(:android)
+
+ROOT = File.expand_path("..", __dir__)
+CONFIG_FILE = File.join(__dir__, "release.yml")
+SAFE_VALUE = %r{\A[\w.:/-]+\z}
+
+def config
+  @config ||= begin
+    UI.user_error!("Missing #{CONFIG_FILE}: copy it from the store-release skill and fill it in") unless File.file?(CONFIG_FILE)
+    loaded = YAML.safe_load(File.read(CONFIG_FILE))
+    loaded.is_a?(Hash) ? loaded : {}
+  end
+end
+
+# Blank values count as unset.
+def optional(path)
+  value = path.split(".").reduce(config) { |node, key| node.is_a?(Hash) ? node[key] : nil }
+  value.respond_to?(:empty?) && value.empty? ? nil : value
+end
+
+def setting(path)
+  value = optional(path)
+  UI.user_error!("fastlane/release.yml has no value for #{path}") if value.nil?
+  value
+end
+
+def path_setting(path)
+  File.expand_path(setting(path).to_s, ROOT)
+end
+
+# YAML turns yes/true into booleans, but quoted values stay strings.
+def truthy?(value)
+  [true, "true", "yes"].include?(value.is_a?(String) ? value.strip.downcase : value)
+end
+
+def platform_enabled?(platform)
+  (optional("platforms") || %w[android ios]).include?(platform)
+end
+
+def require_platform(platform)
+  UI.user_error!("#{platform} is switched off in fastlane/release.yml (platforms)") unless platform_enabled?(platform)
+end
+
+def sentry_enabled?
+  truthy?(optional("sentry.enabled"))
+end
+
+def app_version
+  version = File.read(File.join(ROOT, "pubspec.yaml"))[/^version:\s*(\S+)/, 1].to_s
+  name, build = version.split("+")
+  UI.user_error!("pubspec.yaml version must look like 1.2.3+45, not '#{version}'") unless name && build.to_s.match?(/\A\d+\z/)
+  [name, build.to_i]
+end
+
+def release_notes(file, version)
+  path = File.join(ROOT, file)
+  UI.user_error!("Missing release notes file #{file}") unless File.file?(path)
+  text = File.read(path).gsub("\r\n", "\n")
+  section = text[/^## \[#{Regexp.escape(version)}\]\n(.*?)(?=^## \[|\z)/m, 1].to_s.strip
+  UI.user_error!("#{file} has no '## [#{version}]' section") if section.empty?
+  section
+end
+
+# Release notes of one Play language, within Google Play's limit.
+def play_note(file, version)
+  limit = optional("android.notes_limit") || 500
+  notes = release_notes(file, version)
+  UI.user_error!("#{file} [#{version}] is #{notes.length} characters; Google Play takes #{limit}") if notes.length > limit
+  notes
+end
+
+def require_file(path, what)
+  UI.user_error!("Missing #{what} at #{path} (README, Releasing)") unless File.file?(path)
+end
+
+def flag?(value)
+  value.to_s == "true"
+end
+
+def run(*command)
+  out, status = Open3.capture2e(*command, chdir: ROOT)
+  UI.user_error!("'#{command.join(' ')}' failed:\n#{out}") unless status.success?
+  out
+end
+
+# The check lane passes fetch: false so it changes nothing, not even the local view of origin.
+def check_git(fetch: true)
+  wanted = optional("release_branch") || "main"
+  branch = run("git", "rev-parse", "--abbrev-ref", "HEAD").strip
+  UI.user_error!("Release from #{wanted}, not #{branch}") unless branch == wanted
+  changes = run("git", "status", "--porcelain", "--untracked-files=no").strip
+  UI.user_error!("Commit your changes first:\n#{changes}") unless changes.empty?
+  run("git", "fetch", "--quiet", "origin", wanted) if fetch
+  behind, ahead = run("git", "rev-list", "--left-right", "--count", "origin/#{wanted}...HEAD").split.map(&:to_i)
+  UI.user_error!("#{wanted} is #{behind} behind and #{ahead} ahead of origin/#{wanted}: pull or push first") unless behind.zero? && ahead.zero?
+end
+
+def store_id(platform)
+  setting(platform == "android" ? "android.application_id" : "ios.bundle_id")
+end
+
+def symbols_root
+  File.expand_path(setting("symbols_dir"), ROOT)
+end
+
+# Symbols and the obfuscation map of one release, archived per version and platform.
+def symbols_dir(platform)
+  name, build = app_version
+  File.join(symbols_root, "#{name}+#{build}", platform)
+end
+
+def obfuscation_map(platform)
+  File.join(symbols_dir(platform), "obfuscation.map.json")
+end
+
+# An app that picks its environment from appFlavor gets the fallback (usually development) without a flavor.
+def flavor_warning
+  return nil if optional("flutter.flavor")
+
+  uses_app_flavor = Dir.glob(File.join(ROOT, "lib/**/*.dart")).any? { |file| File.read(file).include?("appFlavor") }
+  return nil unless uses_app_flavor
+
+  "flutter.flavor is empty but the app reads appFlavor: a build without a flavor falls back to the app's default environment (often development, with its keys). Add a native production flavor, or make sure the release build selects production"
+end
+
+PLACEHOLDER_IDS = [/\Acom\.example\./, /\Acom\.pukial\.flutter_?[Pp]ukial_?[Ss]tarter/].freeze
+
+# An id is permanent once a build is uploaded, so a template id must be replaced before the first upload.
+def placeholder_id?(id)
+  PLACEHOLDER_IDS.any? { |pattern| id.to_s.match?(pattern) }
+end
+
+# iOS asks a manual "Missing Compliance" question for every build until this key is in Info.plist.
+def export_compliance_warning
+  plist = File.join(ROOT, "ios/Runner/Info.plist")
+  return nil unless File.file?(plist) && !File.read(plist).include?("ITSAppUsesNonExemptEncryption")
+
+  "ios/Runner/Info.plist has no ITSAppUsesNonExemptEncryption: every TestFlight build waits for a manual 'Missing Compliance' answer. It is a legal declaration (false fits apps that only use standard HTTPS and OS encryption); add it only once you have confirmed that"
+end
+
+# The release buildType must sign with the upload key. Flutter's template signs release with the debug key.
+def debug_signing_warning
+  file = %w[android/app/build.gradle.kts android/app/build.gradle].map { |name| File.join(ROOT, name) }.find { |path| File.file?(path) }
+  return nil unless file
+
+  text = File.read(file)
+  from = text.index(/buildTypes\s*\{/)
+  start = from && text.index(/\brelease\s*\{/, from)
+  return nil unless start
+
+  depth = 0
+  body = +""
+  text[start..].each_char do |char|
+    depth += 1 if char == "{"
+    depth -= 1 if char == "}"
+    body << char
+    break if depth.zero? && body.include?("{")
+  end
+  lines = body.lines.select { |line| line.include?("signingConfig") && !line.strip.start_with?("//") }
+  return nil if lines.any? { |line| line.include?("release") } || (lines.any? && lines.none? { |line| line.include?("debug") })
+
+  "#{File.basename(file)}: the release build type has #{lines.empty? ? 'no signing config' : 'the debug signing config'}, so the AAB would be signed with the Android Debug key and Play would reject it. Create an upload keystore and android/key.properties and give release a signingConfig that reads it"
+end
+
+def flutter_build(target, platform)
+  FileUtils.mkdir_p(symbols_dir(platform))
+  command = setting("flutter.command").split
+  flavor = optional("flutter.flavor")
+  entry = optional("flutter.target")
+  Dir.chdir(ROOT) do
+    sh(*command, "build", target, "--release",
+       *(flavor ? ["--flavor", flavor] : []),
+       *(entry ? ["-t", entry] : []),
+       "--obfuscate",
+       "--split-debug-info=#{symbols_dir(platform)}",
+       "--extra-gen-snapshot-options=--save-obfuscation-map=#{obfuscation_map(platform)}",
+       *(optional("flutter.extra_args") || []))
+  end
+end
+
+def sentry_token_file
+  file = optional("credentials.sentry_token")
+  file && File.expand_path(file, ROOT)
+end
+
+# SENTRY_AUTH_TOKEN wins over the file. Nil when there is neither.
+def sentry_token_value
+  token = ENV["SENTRY_AUTH_TOKEN"].to_s.strip
+  return token unless token.empty?
+
+  file = sentry_token_file
+  return nil unless file && File.file?(file)
+
+  File.read(file).strip
+end
+
+def sentry_token
+  token = sentry_token_value
+  UI.user_error!("No Sentry auth token: set SENTRY_AUTH_TOKEN or put it in #{sentry_token_file || 'the file named by credentials.sentry_token'} (README, Releasing)") if token.to_s.empty?
+  token
+end
+
+def pubspec_has?(package)
+  File.read(File.join(ROOT, "pubspec.yaml")).match?(/^\s+#{Regexp.escape(package)}:/)
+end
+
+# Everything the Sentry upload needs, so a release fails before the build and not after it.
+def sentry_problems
+  return [] unless sentry_enabled?
+
+  problems = %w[sentry.org sentry.project flutter.dart_command].select { |key| optional(key).nil? }.map { |key| "fastlane/release.yml has no value for #{key}" }
+  problems << "sentry_dart_plugin is not in pubspec.yaml: run '#{optional('flutter.dart_command') || 'dart'} pub add --dev sentry_dart_plugin'" unless pubspec_has?("sentry_dart_plugin")
+  problems << "No Sentry auth token: set SENTRY_AUTH_TOKEN or create #{sentry_token_file || 'the file named by credentials.sentry_token'}" if sentry_token_value.to_s.empty?
+  problems
+end
+
+def preflight_sentry
+  problems = sentry_problems
+  UI.user_error!("Sentry is on but not ready:\n- #{problems.join("\n- ")}") unless problems.empty?
+end
+
+# The release name has to equal what the app reports, <id>@<version>+<build> with dist = build,
+# or the crashes stay unsymbolicated. The token goes through the environment: on the command line
+# the plugin would print it. Settings given here win over a sentry: block in pubspec.yaml.
+def upload_symbols(platform)
+  return unless sentry_enabled?
+
+  name, build = app_version
+  url = optional("sentry.url")
+  commits = optional("sentry.commits")
+  ignore_missing = optional("sentry.ignore_missing")
+  with_sentry_token do
+    Dir.chdir(ROOT) do
+      sh(*setting("flutter.dart_command").split, "run", "sentry_dart_plugin",
+         "--sentry-define=org=#{setting('sentry.org')}",
+         "--sentry-define=project=#{setting('sentry.project')}",
+         *(url ? ["--sentry-define=url=#{url}"] : []),
+         "--sentry-define=release=#{store_id(platform)}@#{name}+#{build}",
+         "--sentry-define=dist=#{build}",
+         "--sentry-define=commits=#{commits.nil? ? 'false' : commits}",
+         "--sentry-define=ignore_missing=#{ignore_missing.nil? ? 'true' : ignore_missing}",
+         "--sentry-define=upload_debug_symbols=true",
+         "--sentry-define=upload_source_maps=false",
+         "--sentry-define=upload_sources=false",
+         "--sentry-define=symbols_path=#{symbols_dir(platform)}",
+         "--sentry-define=dart_symbol_map_path=#{obfuscation_map(platform)}")
+    end
+  end
+end
+
+# Sets SENTRY_AUTH_TOKEN for the block and puts the previous value back afterwards.
+def with_sentry_token
+  token = sentry_token
+  previous = ENV["SENTRY_AUTH_TOKEN"]
+  ENV["SENTRY_AUTH_TOKEN"] = token
+  yield
+ensure
+  ENV["SENTRY_AUTH_TOKEN"] = previous if token
+end
+
+def check_fresh(path, since)
+  UI.user_error!("#{path} was not built by this run") unless path && File.file?(path) && File.mtime(path) >= since
+end
+
+def play_key
+  path_setting("credentials.play_key")
+end
+
+# Tracks to read. A custom or closed testing track must be listed here, or its codes are not seen.
+def play_tracks
+  optional("android.tracks") || %w[internal alpha beta production]
+end
+
+def one_line(text)
+  text.to_s.gsub(/\e\[[0-9;]*m/, "").gsub(/\s+/, " ").strip[0, 300]
+end
+
+# Reads every track. Returns the version codes per track and the failures ("track: reason").
+def read_play_codes
+  failures = []
+  codes = play_tracks.to_h do |track|
+    [track, google_play_track_version_codes(track: track, json_key: play_key, package_name: store_id("android")).map(&:to_i)]
+  rescue StandardError => e
+    failures << "#{track}: #{one_line(e.message)}"
+    [track, []]
+  end
+  [codes, failures]
+end
+
+# Languages of the store listing. It opens an edit only to read it and always deletes it, so nothing is
+# committed. download_from_play_store would also fetch every screenshot.
+def play_listing_languages
+  client = Supply::Client.make_from_config(params: { json_key: play_key, timeout: 30 })
+  client.begin_edit(package_name: store_id("android"))
+  begin
+    client.listings.map(&:language).map(&:to_s).sort
+  ensure
+    begin
+      client.abort_current_edit
+    rescue StandardError => e
+      UI.important("Could not delete the read-only Play edit: #{one_line(e.message)}")
+    end
+  end
+end
+
+# Messages for the android.notes languages the store listing does not have, and the listing languages.
+def play_listing_mismatches
+  languages = (optional("android.notes") || {}).keys.map(&:to_s)
+  return [[], []] if languages.empty?
+
+  listed = play_listing_languages
+  messages = (languages - listed).map do |code|
+    "Google Play has no #{code} listing; it has: #{listed.empty? ? 'none yet' : listed.join(', ')}. Fix the key in android.notes (release.yml)"
+  end
+  [messages, listed]
+end
+
+def play_hints(failures)
+  text = failures.join(" ")
+  hints = []
+  hints << "Package not found: check android.application_id, and upload the very first AAB by hand in Play Console (the API cannot see an app before that)" if text.match?(/not found|notfound|404/i)
+  hints << "Permission denied: the service account's Play Console invite or permissions are not applied yet (this can take a few hours)" if text.match?(/403|permission|forbidden|insufficient|unauthorized|401/i)
+  hints << "Check android.application_id, that the first AAB was uploaded by hand in Play Console, and the service account's invite and permissions" if hints.empty?
+  hints
+end
+
+def play_failure_text(failures)
+  "Could not read Google Play for #{store_id('android')}.\n- #{play_hints(failures).join("\n- ")}\nPer track:\n  #{failures.join("\n  ")}"
+end
+
+# A track that was never used can fail to read; all of them failing means no access.
+def play_version_codes
+  codes, failures = read_play_codes
+  UI.user_error!(play_failure_text(failures)) if failures.size == play_tracks.size
+  failures.each { |failure| UI.important("Skipped track #{failure}") }
+  codes
+end
+
+def asc_api_key
+  info_file = path_setting("credentials.asc_key_info")
+  p8_file = path_setting("credentials.asc_key_p8")
+  require_file(info_file, "the App Store Connect key details")
+  require_file(p8_file, "the App Store Connect key")
+  begin
+    info = JSON.parse(File.read(info_file))
+    key_id = info.fetch("key_id")
+    issuer_id = info.fetch("issuer_id")
+  rescue JSON::ParserError, KeyError, TypeError
+    UI.user_error!("#{info_file} must be JSON like {\"key_id\": \"...\", \"issuer_id\": \"...\"}")
+  end
+  app_store_connect_api_key(key_id: key_id, issuer_id: issuer_id, key_filepath: p8_file)
+end
+
+def testflight_build(api_key, version)
+  latest_testflight_build_number(api_key: api_key, app_identifier: store_id("ios"), version: version, initial_build_number: 0).to_i
+end
+
+# Asks Sentry whether the token can read the project: the HTTP status, 0 when unreachable, :unsafe when a
+# value has characters that do not belong in a URL or token. The token goes in on stdin, never on a command line.
+def sentry_token_status(token)
+  host = (optional("sentry.url") || "https://sentry.io").to_s.chomp("/")
+  org = setting("sentry.org").to_s
+  project = setting("sentry.project").to_s
+  return :unsafe unless token.match?(/\A[\w.-]+\z/) && [host, org, project].all? { |value| value.match?(SAFE_VALUE) }
+
+  url = "#{host}/api/0/projects/#{org}/#{project}/"
+  out, status = Open3.capture2("curl", "--silent", "--output", "/dev/null", "--write-out", "%{http_code}", "--max-time", "15", "--config", "-",
+                               stdin_data: "url = \"#{url}\"\nheader = \"Authorization: Bearer #{token}\"\n")
+  status.success? ? out.to_i : 0
+end
+
+def command_exists?(binary)
+  _out, status = Open3.capture2e("sh", "-c", 'command -v "$1"', "sh", binary)
+  status.success?
+end
+
+# keytool on macOS can be a stub that exits with an error when there is no JDK.
+def keytool_works?
+  _out, status = Open3.capture2e("keytool", "-help")
+  status.success?
+rescue SystemCallError
+  false
+end
+
+platform :android do
+  def write_play_notes(name, build)
+    files = optional("android.notes")
+    return nil unless files
+
+    dir = File.join(ROOT, "build/fastlane/play-metadata")
+    FileUtils.rm_rf(dir)
+    files.each do |language, file|
+      notes = play_note(file, name)
+      changelogs = File.join(dir, language, "changelogs")
+      FileUtils.mkdir_p(changelogs)
+      File.write(File.join(changelogs, "#{build}.txt"), "#{notes}\n")
+    end
+    dir
+  end
+
+  def check_bundle(aab)
+    required = optional("android.required_resources") || []
+    unless required.empty?
+      resources, status = Open3.capture2("unzip", "-p", aab, "base/resources.pb", binmode: true)
+      UI.user_error!("Could not read the resources of #{aab}") unless status.success?
+      missing = required.reject { |name| resources.include?(name) }
+      UI.user_error!("The release shrinker removed #{missing.join(', ')}: look for a res/raw/keep.xml in android/app/src/main that replaces a plugin's own") unless missing.empty?
+    end
+    signer, = Open3.capture2e("keytool", "-printcert", "-jarfile", aab)
+    UI.user_error!("#{aab} is not signed with the upload key (is the upload key configured?)") if !signer.include?("Owner:") || signer.include?("CN=Android Debug")
+  end
+
+  # fastlane turns "yes" and "true" into true before the lane sees them.
+  def confirm_production(what, confirm)
+    UI.user_error!("Add CONFIRM=yes to send #{what} to Google Play production") unless [true, "yes"].include?(confirm)
+  end
+
+  desc "Build and send to Google Play. track:internal|production rollout:<1-100> confirm:yes skip_build:true"
+  lane :release do |options|
+    require_platform("android")
+    app_id = store_id("android")
+    aab = path_setting("android.aab")
+    track = options[:track].to_s
+    UI.user_error!("TRACK must be internal or production") unless %w[internal production].include?(track)
+    production = track == "production"
+    percent = options[:rollout].to_s.empty? ? Float(optional("android.default_rollout") || 20) : Float(options[:rollout].to_s)
+    UI.user_error!("ROLLOUT must be between 1 and 100") unless percent.between?(1, 100)
+    staged = production && percent < 100
+    name, build = app_version
+    rollout_text = staged ? format("%g%% rollout", percent) : "full rollout"
+    confirm_production("#{name} (#{build}) at #{rollout_text}", options[:confirm]) if production
+
+    check_git
+    require_file(play_key, "the Google Play service account key")
+    notes = write_play_notes(name, build)
+    codes = play_version_codes
+
+    # Play takes each build once: production gets the very build tested on internal.
+    if production && codes["internal"].to_a.include?(build)
+      UI.message("#{name} (#{build}) is on internal testing: promoting it to production, no new build")
+      upload_to_play_store(
+        package_name: app_id,
+        json_key: play_key,
+        track: "internal",
+        track_promote_to: "production",
+        version_code: build,
+        track_promote_release_status: "completed",
+        rollout: staged ? (percent / 100).to_s : nil,
+        metadata_path: notes,
+        skip_upload_apk: true,
+        skip_upload_aab: true,
+        skip_upload_metadata: true,
+        skip_upload_changelogs: notes.nil?,
+        skip_upload_images: true,
+        skip_upload_screenshots: true,
+      )
+      UI.success("#{name} (#{build}) is on the Google Play production track (#{rollout_text})")
+      next
+    end
+
+    highest = codes.values.flatten.max.to_i
+    UI.user_error!("Build #{build} is already used: Google Play has #{highest}. Raise the build number in pubspec.yaml") if build <= highest
+    key_properties = optional("android.key_properties")
+    require_file(File.expand_path(key_properties, ROOT), "the Android upload key settings") if key_properties
+
+    # Everything the late steps need is resolved before the build, which takes minutes.
+    # A notes language the listing does not have would fail the upload after the build.
+    begin
+      mismatches, = play_listing_mismatches
+    rescue StandardError => e
+      UI.important("Could not read the Play listing languages, continuing: #{one_line(e.message)}")
+      mismatches = []
+    end
+    UI.user_error!(mismatches.join("\n")) unless mismatches.empty?
+    preflight_sentry
+    setting("flutter.command")
+    symbols_dir("android")
+    warning = flavor_warning
+    UI.important(warning) if warning
+
+    unless flag?(options[:skip_build])
+      started = Time.now
+      flutter_build("appbundle", "android")
+      check_fresh(aab, started)
+    end
+    UI.user_error!("No bundle at #{aab}") unless File.file?(aab)
+    check_bundle(aab)
+    upload_symbols("android")
+
+    upload_to_play_store(
+      package_name: app_id,
+      json_key: play_key,
+      track: track,
+      aab: aab,
+      release_status: staged ? "inProgress" : "completed",
+      rollout: staged ? (percent / 100).to_s : nil,
+      metadata_path: notes,
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: notes.nil?,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+    )
+    UI.success("#{name} (#{build}) is on the Google Play #{track} track#{production ? " (#{rollout_text})" : ''}")
+  end
+
+  desc "Change the production rollout of the current build. percent:<1-100> confirm:yes"
+  lane :rollout do |options|
+    require_platform("android")
+    percent = Float(options[:percent].to_s)
+    UI.user_error!("PERCENT must be between 1 and 100") unless percent.between?(1, 100)
+    name, build = app_version
+    confirm_production(format("the %s (%d) rollout at %g%%", name, build, percent), options[:confirm])
+    require_file(play_key, "the Google Play service account key")
+    upload_to_play_store(
+      package_name: store_id("android"),
+      json_key: play_key,
+      track: "production",
+      version_code: build,
+      release_status: percent < 100 ? "inProgress" : "completed",
+      rollout: percent < 100 ? (percent / 100).to_s : nil,
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+    )
+  end
+end
+
+platform :ios do
+  desc "Build and send to TestFlight. skip_build:true"
+  lane :release do |options|
+    require_platform("ios")
+    name, build = app_version
+    check_git
+    notes_file = optional("ios.notes_file")
+    release_notes(notes_file, name) if notes_file
+    api_key = asc_api_key
+    highest = testflight_build(api_key, name)
+    UI.user_error!("Build #{build} is already used for #{name} on TestFlight (#{highest}). Raise the build number in pubspec.yaml") if build <= highest
+
+    preflight_sentry
+    setting("flutter.command")
+    symbols_dir("ios")
+    warning = flavor_warning
+    UI.important(warning) if warning
+
+    started = Time.now
+    ipa_dir = path_setting("ios.ipa_dir")
+    flutter_build("ipa", "ios") unless flag?(options[:skip_build])
+    ipa = Dir[File.join(ipa_dir, "*.ipa")].max_by { |file| File.mtime(file) }
+    UI.user_error!("No .ipa in #{ipa_dir}") unless ipa
+    check_fresh(ipa, started) unless flag?(options[:skip_build])
+    upload_symbols("ios")
+
+    upload_to_testflight(api_key: api_key, ipa: ipa, skip_waiting_for_build_processing: true)
+    UI.success("#{name} (#{build}) is uploaded to TestFlight; it shows there once Apple has processed it")
+  end
+end
+
+# Read-only: reads credentials and build numbers, changes nothing in any store or in the repo.
+# It lists every problem it finds instead of stopping at the first.
+desc "Check the setup and print the build numbers in each store. Changes nothing."
+lane :check do
+  problems = []
+  warnings = []
+  first_line = ->(error) { error.message.to_s.lines.first.to_s.strip }
+  android = platform_enabled?("android")
+  ios = platform_enabled?("ios")
+
+  required = %w[flutter.command symbols_dir]
+  required += %w[android.application_id android.aab credentials.play_key] if android
+  required += %w[ios.bundle_id ios.team_id ios.ipa_dir credentials.asc_key_info credentials.asc_key_p8] if ios
+  missing = required.select { |key| optional(key).nil? }
+  problems << "fastlane/release.yml has no value for: #{missing.join(', ')}" unless missing.empty?
+  have = ->(*keys) { (keys & missing).empty? }
+
+  version = begin
+    app_version
+  rescue StandardError => e
+    problems << first_line.call(e)
+    nil
+  end
+  name, build = version
+  UI.message("Local version: #{name}+#{build}") if version
+
+  problems << "keytool not found or not working: install a JDK (Android Studio ships one)" if android && !keytool_works?
+  problems << "unzip not found" if android && !command_exists?("unzip")
+  problems << "curl not found" if sentry_enabled? && !command_exists?("curl")
+  %w[flutter.command flutter.dart_command].each do |key|
+    binary = optional(key).to_s.split.first
+    problems << "#{key} runs '#{binary}', which is not installed" if binary && !command_exists?(binary)
+  end
+
+  files = {}
+  files["Play key"] = "credentials.play_key" if android && have.call("credentials.play_key")
+  if ios
+    files["App Store Connect key details"] = "credentials.asc_key_info" if have.call("credentials.asc_key_info")
+    files["App Store Connect key"] = "credentials.asc_key_p8" if have.call("credentials.asc_key_p8")
+  end
+  files.each do |what, key|
+    path = path_setting(key)
+    File.file?(path) ? UI.success("#{what}: found at #{path}") : problems << "#{what} missing at #{path}"
+  end
+
+  if android
+    key_properties = optional("android.key_properties")
+    if key_properties && !File.file?(File.expand_path(key_properties, ROOT))
+      warnings << "#{key_properties} is missing: an Android release build cannot be signed (not needed to promote)"
+    end
+    if have.call("android.application_id", "credentials.play_key") && File.file?(play_key)
+      codes, failures = read_play_codes
+      if failures.size == play_tracks.size
+        problems << play_failure_text(failures)
+      else
+        failures.each { |failure| warnings << "Google Play track skipped, #{failure}" }
+        codes.each { |track, list| UI.message("Google Play #{track}: #{list.empty? ? 'no builds' : list.sort.reverse.join(', ')}") }
+        notes_languages = (optional("android.notes") || {}).keys.map(&:to_s)
+        unless notes_languages.empty?
+          begin
+            messages, listed = play_listing_mismatches
+            UI.message("Google Play listing languages: #{listed.empty? ? 'none' : listed.join(', ')}")
+            problems.concat(messages)
+            UI.message("Listing languages without a notes file: #{(listed - notes_languages).join(', ')}") unless (listed - notes_languages).empty?
+          rescue StandardError => e
+            warnings << "Could not read the Play listing languages: #{first_line.call(e)}"
+          end
+        end
+        highest = codes.values.flatten.max.to_i
+        if version && codes["internal"].to_a.include?(build)
+          UI.message("Local build #{build} is on Google Play internal: a production run promotes it")
+        elsif version && build <= highest
+          problems << "Local build #{build} is not above Google Play's highest (#{highest}): raise it in pubspec.yaml"
+        elsif version
+          UI.success("Local build #{build} is above Google Play's highest (#{highest})")
+        end
+      end
+    end
+  end
+
+  if ios && have.call("ios.bundle_id", "credentials.asc_key_info", "credentials.asc_key_p8") &&
+     File.file?(path_setting("credentials.asc_key_info")) && File.file?(path_setting("credentials.asc_key_p8"))
+    begin
+      highest = testflight_build(asc_api_key, name)
+      UI.message("TestFlight latest build for #{name}: #{highest.zero? ? 'none yet' : highest}")
+      problems << "Local build #{build} is not above TestFlight's #{highest} for #{name}: raise it in pubspec.yaml" if version && build <= highest
+    rescue StandardError => e
+      problems << "App Store Connect: #{first_line.call(e)}"
+    end
+  end
+
+  if sentry_enabled?
+    problems.concat(sentry_problems)
+    token = sentry_token_value
+    UI.message("Sentry token: #{ENV['SENTRY_AUTH_TOKEN'].to_s.strip.empty? ? "found at #{sentry_token_file}" : 'SENTRY_AUTH_TOKEN is set'}") unless token.to_s.empty?
+    if !token.to_s.empty? && %w[sentry.org sentry.project].all? { |key| optional(key) }
+      case (code = sentry_token_status(token))
+      when 200 then UI.success("Sentry token can read #{setting('sentry.org')}/#{setting('sentry.project')}")
+      when 401 then problems << "Sentry rejected the token (401): create a new one"
+      when 403, 404 then warnings << "Sentry token cannot read #{setting('sentry.org')}/#{setting('sentry.project')} (#{code}): check org, project and url; uploads may still work"
+      when :unsafe then problems << "The Sentry token, url, org or project has characters that do not belong there: check the token file holds only the token"
+      else warnings << "Could not reach Sentry to validate the token (#{code})"
+      end
+    end
+  end
+
+  if version
+    (android ? (optional("android.notes") || {}).values : []).each do |file|
+      play_note(file, name)
+    rescue StandardError => e
+      (e.message.include?("characters; Google Play") ? problems : warnings) << first_line.call(e)
+    end
+    notes_files = []
+    notes_files << optional("ios.notes_file") if ios && optional("ios.notes_file")
+    notes_files.uniq.each do |file|
+      release_notes(file, name)
+    rescue StandardError => e
+      warnings << first_line.call(e)
+    end
+  end
+
+  if have.call("symbols_dir")
+    root = symbols_root
+    warnings << "symbols_dir #{root} is inside the repo: flutter clean or a commit can lose or leak the symbols" if root == ROOT || root.start_with?("#{ROOT}/")
+  end
+  flavor = flavor_warning
+  warnings << flavor if flavor
+  { "android.application_id" => android, "ios.bundle_id" => ios }.each do |key, on|
+    id = optional(key)
+    warnings << "#{key} is #{id}, a template id: ids are permanent once a build is uploaded, so set the final one first" if on && id && placeholder_id?(id)
+  end
+  [(export_compliance_warning if ios), (debug_signing_warning if android)].compact.each { |warning| warnings << warning }
+  begin
+    check_git(fetch: false)
+  rescue StandardError => e
+    warnings << "Git (a release lane needs this fixed): #{first_line.call(e)}"
+  end
+
+  warnings.each { |warning| UI.important(warning) }
+  UI.user_error!("Release check found problems:\n- #{problems.join("\n- ")}") unless problems.empty?
+  UI.success("Release check passed: nothing was changed")
+end

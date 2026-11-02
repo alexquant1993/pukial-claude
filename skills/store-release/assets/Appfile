@@ -1,0 +1,16 @@
+# Generic: every value comes from release.yml. Store credentials live outside the repo.
+require "yaml"
+
+config_file = File.join(FastlaneCore::FastlaneFolder.path, "release.yml")
+raise "Missing #{config_file}: copy it from the store-release skill and fill it in" unless File.file?(config_file)
+
+config = YAML.safe_load(File.read(config_file))
+config = {} unless config.is_a?(Hash)
+android = config["android"].is_a?(Hash) ? config["android"] : {}
+ios = config["ios"].is_a?(Hash) ? config["ios"] : {}
+credentials = config["credentials"].is_a?(Hash) ? config["credentials"] : {}
+
+package_name(android["application_id"].to_s) unless android["application_id"].to_s.empty?
+json_key_file(File.expand_path(credentials["play_key"].to_s)) unless credentials["play_key"].to_s.empty?
+app_identifier(ios["bundle_id"].to_s) unless ios["bundle_id"].to_s.empty?
+team_id(ios["team_id"].to_s) unless ios["team_id"].to_s.empty?
