@@ -1,7 +1,11 @@
 # Generic: every value comes from release.yml. Store credentials live outside the repo.
 require "yaml"
 
-config_file = File.join(FastlaneCore::FastlaneFolder.path, "release.yml")
+# * RELEASE_CONFIG names another settings file in this folder (one repo, two apps); unset means release.yml.
+release_config = ENV["RELEASE_CONFIG"].to_s.empty? ? "release.yml" : ENV["RELEASE_CONFIG"]
+raise "RELEASE_CONFIG must be a plain file name like release-dev.yml, got: #{release_config}" unless release_config.match?(/\Arelease[\w-]*\.yml\z/)
+
+config_file = File.join(FastlaneCore::FastlaneFolder.path, release_config)
 raise "Missing #{config_file}: copy it from the store-release skill and fill it in" unless File.file?(config_file)
 
 config = YAML.safe_load(File.read(config_file))

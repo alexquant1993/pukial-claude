@@ -15,7 +15,10 @@ skip_docs
 default_platform(:android)
 
 ROOT = File.expand_path("..", __dir__)
-CONFIG_FILE = File.join(__dir__, "release.yml")
+# * RELEASE_CONFIG names another settings file in this folder (one repo, two apps); unset means release.yml.
+RELEASE_CONFIG = ENV["RELEASE_CONFIG"].to_s.empty? ? "release.yml" : ENV["RELEASE_CONFIG"]
+UI.user_error!("RELEASE_CONFIG must be a plain file name like release-dev.yml, got: #{RELEASE_CONFIG}") unless RELEASE_CONFIG.match?(/\Arelease[\w-]*\.yml\z/)
+CONFIG_FILE = File.join(__dir__, RELEASE_CONFIG)
 SAFE_VALUE = %r{\A[\w.:/-]+\z}
 
 def config
