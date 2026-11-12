@@ -6,20 +6,21 @@
 # make release-rollout PERCENT=50 CONFIRM=yes
 # make release-ios                                               (TestFlight)
 # CONFIRM only counts when typed on the command line, so an exported CONFIRM in the shell cannot confirm a production run.
-# CONFIG=release-dev.yml picks another settings file in fastlane/ (a second app from the same repo); unset means release.yml.
+# CONFIG=release-dev.yml picks another settings file in fastlane/ (a second app from the same repo); like CONFIRM it only counts
+# when typed on the command line (an exported CONFIG or RELEASE_CONFIG never picks the app), and no CONFIG means release.yml.
 # SKIP_BUILD=true reuses the last build, e.g. to retry a failed upload.
 FASTLANE=LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 FASTLANE_SKIP_UPDATE_CHECK=1 FASTLANE_OPT_OUT_USAGE=YES fastlane
 
 .PHONY: release-check release-android release-rollout release-ios
 
 release-check:
-	$(if $(CONFIG),RELEASE_CONFIG=$(CONFIG)) $(FASTLANE) check
+	RELEASE_CONFIG=$(if $(filter command line,$(origin CONFIG)),$(CONFIG)) $(FASTLANE) check
 
 release-android:
-	$(if $(CONFIG),RELEASE_CONFIG=$(CONFIG)) $(FASTLANE) android release track:$(TRACK) $(if $(ROLLOUT),rollout:$(ROLLOUT)) $(if $(filter command line,$(origin CONFIRM)),confirm:$(CONFIRM)) $(if $(SKIP_BUILD),skip_build:$(SKIP_BUILD))
+	RELEASE_CONFIG=$(if $(filter command line,$(origin CONFIG)),$(CONFIG)) $(FASTLANE) android release track:$(TRACK) $(if $(ROLLOUT),rollout:$(ROLLOUT)) $(if $(filter command line,$(origin CONFIRM)),confirm:$(CONFIRM)) $(if $(SKIP_BUILD),skip_build:$(SKIP_BUILD))
 
 release-rollout:
-	$(if $(CONFIG),RELEASE_CONFIG=$(CONFIG)) $(FASTLANE) android rollout percent:$(PERCENT) $(if $(filter command line,$(origin CONFIRM)),confirm:$(CONFIRM))
+	RELEASE_CONFIG=$(if $(filter command line,$(origin CONFIG)),$(CONFIG)) $(FASTLANE) android rollout percent:$(PERCENT) $(if $(filter command line,$(origin CONFIRM)),confirm:$(CONFIRM))
 
 release-ios:
-	$(if $(CONFIG),RELEASE_CONFIG=$(CONFIG)) $(FASTLANE) ios release $(if $(SKIP_BUILD),skip_build:$(SKIP_BUILD))
+	RELEASE_CONFIG=$(if $(filter command line,$(origin CONFIG)),$(CONFIG)) $(FASTLANE) ios release $(if $(SKIP_BUILD),skip_build:$(SKIP_BUILD))

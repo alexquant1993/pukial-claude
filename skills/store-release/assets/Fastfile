@@ -37,7 +37,7 @@ end
 
 def setting(path)
   value = optional(path)
-  UI.user_error!("fastlane/release.yml has no value for #{path}") if value.nil?
+  UI.user_error!("fastlane/#{RELEASE_CONFIG} has no value for #{path}") if value.nil?
   value
 end
 
@@ -55,7 +55,7 @@ def platform_enabled?(platform)
 end
 
 def require_platform(platform)
-  UI.user_error!("#{platform} is switched off in fastlane/release.yml (platforms)") unless platform_enabled?(platform)
+  UI.user_error!("#{platform} is switched off in fastlane/#{RELEASE_CONFIG} (platforms)") unless platform_enabled?(platform)
 end
 
 def sentry_enabled?
@@ -225,7 +225,7 @@ end
 def sentry_problems
   return [] unless sentry_enabled?
 
-  problems = %w[sentry.org sentry.project flutter.dart_command].select { |key| optional(key).nil? }.map { |key| "fastlane/release.yml has no value for #{key}" }
+  problems = %w[sentry.org sentry.project flutter.dart_command].select { |key| optional(key).nil? }.map { |key| "fastlane/#{RELEASE_CONFIG} has no value for #{key}" }
   problems << "sentry_dart_plugin is not in pubspec.yaml: run '#{optional('flutter.dart_command') || 'dart'} pub add --dev sentry_dart_plugin'" unless pubspec_has?("sentry_dart_plugin")
   problems << "No Sentry auth token: set SENTRY_AUTH_TOKEN or create #{sentry_token_file || 'the file named by credentials.sentry_token'}" if sentry_token_value.to_s.empty?
   problems
@@ -327,7 +327,7 @@ def play_listing_mismatches
 
   listed = play_listing_languages
   messages = (languages - listed).map do |code|
-    "Google Play has no #{code} listing; it has: #{listed.empty? ? 'none yet' : listed.join(', ')}. Fix the key in android.notes (release.yml)"
+    "Google Play has no #{code} listing; it has: #{listed.empty? ? 'none yet' : listed.join(', ')}. Fix the key in android.notes (#{RELEASE_CONFIG})"
   end
   [messages, listed]
 end
@@ -399,6 +399,11 @@ rescue SystemCallError
   false
 end
 
+# * Every lane says which settings file, and so which app, it is about to touch.
+before_all do
+  UI.important("Settings: fastlane/#{RELEASE_CONFIG} (android: #{optional('android.application_id') || 'none'}, ios: #{optional('ios.bundle_id') || 'none'})")
+end
+
 platform :android do
   def write_play_notes(name, build)
     files = optional("android.notes")
@@ -429,7 +434,7 @@ platform :android do
 
   # fastlane turns "yes" and "true" into true before the lane sees them.
   def confirm_production(what, confirm)
-    UI.user_error!("Add CONFIRM=yes to send #{what} to Google Play production") unless [true, "yes"].include?(confirm)
+    UI.user_error!("Add CONFIRM=yes to send #{what} to Google Play production for #{optional('android.application_id')} (settings: fastlane/#{RELEASE_CONFIG})") unless [true, "yes"].include?(confirm)
   end
 
   desc "Build and send to Google Play. track:internal|production rollout:<1-100> confirm:yes skip_build:true"
@@ -591,7 +596,7 @@ lane :check do
   required += %w[android.application_id android.aab credentials.play_key] if android
   required += %w[ios.bundle_id ios.team_id ios.ipa_dir credentials.asc_key_info credentials.asc_key_p8] if ios
   missing = required.select { |key| optional(key).nil? }
-  problems << "fastlane/release.yml has no value for: #{missing.join(', ')}" unless missing.empty?
+  problems << "fastlane/#{RELEASE_CONFIG} has no value for: #{missing.join(', ')}" unless missing.empty?
   have = ->(*keys) { (keys & missing).empty? }
 
   version = begin

@@ -182,13 +182,15 @@ Tell the user, in plain words:
 ## Two apps from one repo (flavors)
 
 When one Flutter repo ships two store apps (a store flavor and a development flavor), keep one Fastfile and
-add a second settings file next to `release.yml`: `fastlane/release-<name>.yml`, e.g. `release-dev.yml`
-with `flavor: development`, its own `application_id`, `bundle_id`, `aab` path and `symbols_dir`, and the
-same credentials. The `RELEASE_CONFIG` environment variable names the file (a plain name like
-`release-dev.yml`, nothing else is accepted); unset, the lanes read `release.yml` exactly as before. The
-Makefile targets pass it through `CONFIG`: `make release-check CONFIG=release-dev.yml`,
-`make release-android TRACK=internal CONFIG=release-dev.yml`. The app's own Makefile may add short aliases
-(`release-android-dev`) and its own guards on top; the shared snippet stays generic.
+add a second settings file next to `release.yml`: `fastlane/release-<name>.yml`, e.g. `release-dev.yml` with
+`flavor: development`, its own `application_id`, `bundle_id`, `aab` path and `symbols_dir`, and the same
+credentials (the Play service account must be invited on the second app too). The `RELEASE_CONFIG`
+environment variable names the file (a plain name like `release-dev.yml`, nothing else is accepted); unset,
+the lanes read `release.yml` exactly as before. The Makefile targets pass it through `CONFIG`: `make
+release-check CONFIG=release-dev.yml`, `make release-android TRACK=internal CONFIG=release-dev.yml`.
+`CONFIG` only counts typed on the command line, and every lane prints the settings file and app ids it uses.
+The app's own Makefile may add short aliases (`release-android-dev`) and its own guards on top; the shared
+snippet stays generic.
 
 ## The rules the Fastfile enforces
 

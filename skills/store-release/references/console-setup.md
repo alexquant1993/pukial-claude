@@ -27,7 +27,7 @@ Tell the user to move the downloads there with `mv` and then `chmod 600`.
 4. Open it, Keys, Add key, Create new key, **JSON**. The file downloads once. Save it as the `play_key`
    path from `release.yml`.
 5. Play Console, **Users and permissions**, Invite new users: use the service account's email
-   (`...@...iam.gserviceaccount.com`). Under App permissions add this app and tick exactly:
+   (`...@...iam.gserviceaccount.com`). Under App permissions add this app (and a second flavor's app, if the repo releases two) and tick exactly:
    - View app information (read-only)
    - Release apps to testing tracks
    - Manage testing tracks and edit tester lists
