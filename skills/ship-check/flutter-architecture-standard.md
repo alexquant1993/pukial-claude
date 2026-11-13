@@ -1,6 +1,6 @@
 ---
 title: Pukial Flutter Architecture Standard
-version: 2026-06-27
+version: 2026-11-13
 source: reference-app audit (2026-06-27) + flutter-pukial-starter resolved conventions
 ---
 
@@ -97,9 +97,17 @@ misplaced tests opportunistically. Missing tests themselves are maturity-scaled 
 ## TIER 2 — structural (LLM-judged over the diff; blocks by severity when in-diff)
 
 ### T2.1 Localization — no hardcoded user-facing strings
-All user-facing text via `context.loc.<key>`, present in **both** `app_en.arb` + `app_es.arb`.
-LLM-judged (not grep): distinguishing `Text('Total')` from `Text(context.loc.total)`,
+All user-facing text via `context.loc.<key>`, and the app's ARB files agree on their keys.
+- **Hardcoded strings — LLM-judged (not grep):** distinguishing `Text('Total')` from `Text(context.loc.total)`,
 `Text(amount)`, `Semantics(label:)`, `Key('…')`, or a debug/map-key string needs intent reading.
+- **ARB key parity — deterministic, in the Stage 0.5 sweep** (`arb-key-parity`, Minor): check the
+  languages the app *actually has*, not a fixed pair. Find the l10n folder and template as Flutter
+  does: `l10n.yaml` (`arb-dir`, `template-arb-file`), defaulting to `lib/l10n` and `app_en.arb`.
+  Only `app_*.arb` files inside that folder count (a frozen copy elsewhere, e.g. under `docs/`, never
+  does). **One file → nothing to compare → passes silently.** Two or more → every non-template file
+  is compared with the template in both directions (keys missing from the translation, extra keys
+  not in the template); metadata (`@key`, `@@locale`) is not a key. The languages compared are named
+  in the sweep output.
 
 ### T2.2 Layering & the repository-vs-service rule
 `domain ← data ← application ← presentation`, one-way. A single-repository action → the controller

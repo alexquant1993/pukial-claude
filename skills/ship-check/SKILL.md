@@ -56,7 +56,9 @@ python3 "<skill-dir>/sweep.py" --root . --json /tmp/ship-check-sweep.json
 
 The script resolves `BASE_SHA` (fallback chain `merge-base with origin/main → merge-base with main →
 HEAD~1 → none`), greps every rule in `tier1-rules.yaml` over the working tree, honors
-`// ship-check:ignore <rule-id>`, and partitions hits into **in-diff (actionable)** vs
+`// ship-check:ignore <rule-id>`, runs the T2.1 ARB key-parity check over the languages the app
+actually has (silent for a single-language app; names the languages it compared otherwise), and
+partitions hits into **in-diff (actionable)** vs
 **existing-drift (advisory, never blocks)**. Read the JSON for the structured findings. Exit code 1 =
 in-diff Critical/Important present.
 

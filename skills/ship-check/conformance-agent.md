@@ -44,7 +44,9 @@ changes follow the Pukial Flutter Architecture Standard.
     this change introduced the need).
 - **TIER 2 (structural):** report violations. Severity Important or Minor by impact.
   - Localization: hardcoded user-facing strings that should be `context.loc.<key>` (use judgment —
-    ignore debug strings, keys, map keys, non-UI text).
+    ignore debug strings, keys, map keys, non-UI text). **Do not check ARB key parity** (matching
+    keys across `app_*.arb`): the Stage 0.5 sweep does it deterministically from the languages the
+    app actually has. Never assume English + Spanish; an English-only app is correct, not a gap.
   - Layering & repository-vs-service rule; one-way dependency direction (`data/` importing
     `application/`, etc.).
   - Repository shape (interface + `Fake*` + provider) where a real data source is involved.
