@@ -12,9 +12,12 @@
 # Exempt a line with an inline `// ship-check:ignore <id>` (same line or line above;
 # for a multi-line match, the line the match starts on works too).
 #
+# The T2.1 ARB key-parity check is NOT a regex rule: it lives in sweep.py (`check_arb_parity`)
+# because it compares files with each other. It has no entry here.
+#
 # Built-in reader (no PyYAML) constraint: comments are FULL-LINE only (start with '#');
 # never put an inline '# comment' after a value. A '#' *inside* a quoted pattern is fine.
-version: "2026-06-27"
+version: "2026-11-13"
 
 rules:
   - id: "no-hardcoded-route-path"

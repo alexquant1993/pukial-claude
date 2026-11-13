@@ -20,6 +20,9 @@ match spanning lines, the line the match starts on also counts).
 Zero runtime dependencies: uses PyYAML if importable, else a tiny built-in reader
 (the rules file is authored with strict-JSON values, a valid YAML subset).
 
+Also runs the T2.1 localization parity check (see `check_arb_parity`): it compares the ARB
+files the app actually has, in both directions, and stays silent for a single-language app.
+
 Exit code: 0 if no in-diff Critical/Important findings, 1 otherwise. (Pre-existing
 drift and minor/in-diff-minor never set a failing code — the maturity guard.)
 """
@@ -309,11 +312,144 @@ def scan(root, version, rules):
                 )
     return findings, suppress_count
 
+# ---------------------------------------------------------------- T2.1 ARB parity
+
+ARB_RULE = "arb-key-parity"
+ARB_SEVERITY = "minor"  # advisory: a translation gap never blocks the ship.
+DEFAULT_ARB_DIR = "lib/l10n"
+DEFAULT_TEMPLATE = "app_en.arb"
+
+
+def read_l10n_yaml(root):
+    # Flutter's l10n.yaml is a flat file of `key: value` scalars. Read only what
+    # we need (arb-dir, template-arb-file) with a tiny reader, so this stays
+    # dependency-free. Missing or unreadable file -> Flutter's own defaults.
+    cfg = {}
+    path = Path(root) / "l10n.yaml"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return cfg
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or ":" not in line:
+            continue
+        key, _, val = line.partition(":")
+        val = val.strip()
+        if val[:1] in ("'", '"'):
+            end = val.find(val[0], 1)
+            val = val[1:end] if end > 0 else val[1:]
+        else:
+            val = val.split(" #", 1)[0].strip()
+        if val:
+            cfg[key.strip()] = val
+    return cfg
+
+
+def _arb_keys(path):
+    # Translatable keys only: `@key` descriptions and `@@locale` are metadata.
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("top level is not a JSON object")
+    return [k for k in data if not k.startswith("@")]
+
+
+def _lang(filename):
+    return filename[: -len(".arb")].removeprefix("app_")
+
+
+def _key_line(lines, key):
+    pat = re.compile(r'^\s*' + re.escape(json.dumps(key)) + r'\s*:')
+    for i, line in enumerate(lines):
+        if pat.match(line):
+            return i + 1, line.strip()[:160]
+    return 1, ""
+
+
+def check_arb_parity(root):
+    """T2.1 (ARB half): every non-template ARB must have exactly the template's keys.
+
+    Looks only at `app_*.arb` directly inside Flutter's `arb-dir` (from l10n.yaml,
+    default `lib/l10n`), so a frozen copy elsewhere (e.g. under docs/) is never counted.
+    One language -> nothing to compare -> no findings and no output.
+    Returns (findings, info); info always names the languages found.
+    """
+    cfg = read_l10n_yaml(root)
+    arb_dir = cfg.get("arb-dir", DEFAULT_ARB_DIR)
+    template = cfg.get("template-arb-file", DEFAULT_TEMPLATE)
+    base = Path(root) / arb_dir
+    info = {"arb_dir": arb_dir, "template": template, "languages": [], "compared": False}
+    if not base.is_dir():
+        return [], info
+
+    files = {p.name: p for p in base.glob("app_*.arb") if p.is_file()}
+    tpl_path = base / template
+    if tpl_path.is_file():
+        files.setdefault(template, tpl_path)
+    info["languages"] = sorted(_lang(n) for n in files)
+    if len(files) < 2 or template not in files:
+        return [], info
+
+    def rel(p):
+        return os.path.relpath(p, root)
+
+    findings = []
+
+    def add(path, key, message, lines):
+        lineno, text = _key_line(lines, key)
+        findings.append(
+            {
+                "rule": ARB_RULE,
+                "severity": ARB_SEVERITY,
+                "message": message,
+                "file": rel(path),
+                "line": lineno,
+                "text": text,
+            }
+        )
+
+    try:
+        tpl_keys = _arb_keys(tpl_path)
+    except (OSError, ValueError) as e:
+        return [{"rule": ARB_RULE, "severity": ARB_SEVERITY, "file": rel(tpl_path), "line": 1,
+                 "text": "", "message": f"Template ARB is not valid JSON ({e}). (T2.1)"}], info
+    tpl_set = set(tpl_keys)
+    tpl_lines = tpl_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    compared = [_lang(template)]
+
+    for name in sorted(files):
+        if name == template:
+            continue
+        path = files[name]
+        compared.append(_lang(name))
+        try:
+            keys = _arb_keys(path)
+        except (OSError, ValueError) as e:
+            findings.append({"rule": ARB_RULE, "severity": ARB_SEVERITY, "file": rel(path),
+                             "line": 1, "text": "",
+                             "message": f"{name} is not valid JSON ({e}). (T2.1)"})
+            continue
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        have = set(keys)
+        for key in tpl_keys:
+            if key not in have:
+                # Reported on the template line, where the key was (usually) just added.
+                add(tpl_path, key, f"Key '{key}' is in {template} but missing from {name}. (T2.1)",
+                    tpl_lines)
+        for key in keys:
+            if key not in tpl_set:
+                add(path, key, f"Key '{key}' is in {name} but not in the template {template}. (T2.1)",
+                    lines)
+
+    info["languages"] = compared
+    info["compared"] = True
+    return findings, info
+
 
 # ---------------------------------------------------------------- report
 
 
-def build_report(root, base, base_label, ranges, findings, suppress_count, version):
+def build_report(root, base, base_label, ranges, findings, suppress_count, version, l10n=None):
     for f in findings:
         f["scope"] = "in_diff" if is_in_diff(ranges, f["file"], f["line"]) else "pre_existing"
     in_diff = [f for f in findings if f["scope"] == "in_diff"]
@@ -328,6 +464,7 @@ def build_report(root, base, base_label, ranges, findings, suppress_count, versi
         "base_sha": base,
         "base_resolution": base_label,
         "suppressed": suppress_count,
+        "l10n": l10n or {},
         "counts": {
             "in_diff": len(in_diff),
             "in_diff_blocking": len(blocking),
@@ -344,6 +481,9 @@ def print_human(rep):
     print(f"  standard version : {rep['version']}")
     print(f"  base             : {rep['base_sha'] or '(none)'}  [{rep['base_resolution']}]")
     print(f"  suppressed       : {rep['suppressed']} (// ship-check:ignore)")
+    l10n = rep.get("l10n") or {}
+    if l10n.get("compared"):
+        print(f"  ARB languages    : {', '.join(l10n['languages'])} (template {l10n['template']})")
     print()
     print(f"YOUR CHANGES — {rep['counts']['in_diff']} finding(s), "
           f"{rep['counts']['in_diff_blocking']} blocking:")
@@ -380,7 +520,9 @@ def main():
     base, base_label = resolve_base_sha(args.root, args.base)
     ranges = added_line_ranges(base, args.root)
     findings, suppress_count = scan(args.root, version, rules)
-    rep = build_report(args.root, base, base_label, ranges, findings, suppress_count, version)
+    arb_findings, l10n = check_arb_parity(args.root)
+    findings += arb_findings
+    rep = build_report(args.root, base, base_label, ranges, findings, suppress_count, version, l10n)
 
     if args.json:
         Path(args.json).write_text(json.dumps(rep, indent=2), encoding="utf-8")
